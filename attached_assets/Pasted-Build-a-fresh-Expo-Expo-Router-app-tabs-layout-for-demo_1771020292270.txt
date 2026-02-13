@@ -1,0 +1,61 @@
+Build a fresh Expo + Expo Router app (tabs layout) for demo/sales only. Keep it simple and stable. No login. No database. No extra backends beyond what’s required.
+
+Goal:
+A single working “Talk” screen that supports:
+1) text chat to OpenAI
+2) push-to-talk voice recording (tap mic to start, tap again to stop)
+3) transcription (Whisper) -> send transcript to chat -> speak response (TTS)
+4) TTS controls: Pause / Resume / Stop
+5) UI that never hides behind the bottom tab bar (add extra bottom padding; do not use useBottomTabBarHeight)
+
+App structure (Expo Router):
+- app/_layout.tsx (Tabs)
+- app/(tabs)/index.tsx (Home)
+- app/(tabs)/talk.tsx (Talk screen)
+- constants/colors.ts
+- assets/images/LOGOVALT.png
+- assets/images/HEROIMAGE.jpg
+
+Home screen:
+- Dark background
+- Center LOGOVALT.png near top
+- HEROIMAGE.jpg card
+- Button “ASK YOUR MENTOR” that navigates to /(tabs)/talk
+
+Talk screen requirements:
+- Chat UI (messages list, user + assistant bubbles)
+- Text input + Send button
+- Mic button toggles recording
+- When recording stops:
+  - transcribe audio
+  - append user message
+  - call chat completion
+  - append assistant message
+  - play TTS response
+- Show “Thinking…” spinner while processing
+- Disable typing while recording
+
+OpenAI API usage:
+- Read key from EXPO_PUBLIC_OPENAI_API_KEY
+- Use:
+  - POST https://api.openai.com/v1/audio/transcriptions (multipart form, whisper-1)
+  - POST https://api.openai.com/v1/chat/completions (gpt-3.5-turbo)
+  - POST https://api.openai.com/v1/audio/speech (tts-1, voice alloy)
+- On native: play TTS from base64 data URI using expo-av Audio.Sound.createAsync({ uri: "data:audio/mpeg;base64,..." })
+- On web: do NOT call new Audio(url) because expo-av shadows the global constructor; use new (globalThis as any).Audio(url) if needed, but prefer a single codepath using expo-av where possible.
+
+Recording:
+- Use expo-av Audio.Recording
+- Implement a “hard reset” before starting a new recording so the mic never gets stuck after one attempt.
+- Include start/stop locks to prevent double-tap races.
+- Keep audio mode simple to avoid Expo Go crashes:
+  - Audio.setAudioModeAsync({ allowsRecordingIOS, playsInSilentModeIOS, shouldDuckAndroid })
+
+Safety prompt:
+Use this system context for the assistant:
+“You are SAWWISE, an expert assistant for the HYDMECH S-20 Series III Horizontal Pivot Bandsaw. Answer concisely, prioritize safety, and give step-by-step guidance when appropriate.”
+
+Deliverables:
+- Provide complete working code for each file listed above.
+- Use only relative require() paths for assets (no @ alias).
+- No bold formatting in responses.
