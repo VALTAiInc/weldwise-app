@@ -591,8 +591,10 @@ const tStyles = StyleSheet.create({
   },
 
   micRow: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 12,
   },
   talkButton: {
     paddingHorizontal: 32,
@@ -609,12 +611,10 @@ const tStyles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   micRowDone: {
-    position: "absolute",
-    right: "15%",
     backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 30,
   },
   micOuter: { alignItems: "center", justifyContent: "center", height: 80 },
   micPulse: {
