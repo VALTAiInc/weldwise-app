@@ -25,7 +25,7 @@ import Colors from "../../constants/colors";
 const heroImage = require("../../assets/images/HEROIMAGE.jpg");
 const logoImage = require("../../assets/images/LOGOVALT.png");
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || "https://node-express-1.replit.app";
+const API_BASE = "https://weld-wise-backend-gold.replit.app";
 
 // ─── Languages ────────────────────────────────────────────────────────────────
 
@@ -219,10 +219,10 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
         await soundRef.current.unloadAsync();
         soundRef.current = null;
       }
-      const fileUri = FileSystem.cacheDirectory + "ww_translation.mp3";
-      await FileSystem.writeAsStringAsync(fileUri, result.audioBase64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+        const fileUri = (FileSystem.cacheDirectory ?? "") + "ww_translation.mp3";
+        await FileSystem.writeAsStringAsync(fileUri, result.audioBase64, {
+          encoding: 'base64',
+        });
       const { sound } = await Audio.Sound.createAsync({ uri: fileUri }, { shouldPlay: true });
       soundRef.current = sound;
 
