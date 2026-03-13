@@ -543,7 +543,7 @@ const tStyles = StyleSheet.create({
   speakerBadgeText: { color: "#fff", fontWeight: "800", fontSize: 14 },
 
   textBox: {
-    flex: 1,
+    flex: 2,
     marginVertical: 10,
     backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 14,
