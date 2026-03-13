@@ -92,10 +92,10 @@ function LangPicker({ value, onChange }: { value: string; onChange: (c: string) 
 // ─── Mic Button ───────────────────────────────────────────────────────────────
 
 function MicButton({
-  isRecording, isProcessing, onPressIn, onPressOut, color,
+  isRecording, isProcessing, onPress, color,
 }: {
   isRecording: boolean; isProcessing: boolean;
-  onPressIn: () => void; onPressOut: () => void; color: string;
+  onPress: () => void; color: string;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -123,8 +123,7 @@ function MicButton({
       )}
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
-          onPressIn={onPressIn}
-          onPressOut={onPressOut}
+          onPress={onPress}
           disabled={isProcessing}
           style={[
             tStyles.micButton,
@@ -243,6 +242,15 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
     }
   }, [langA, langB]);
 
+  const toggleRecording = useCallback((speaker: "A" | "B") => {
+    const isRec = speaker === "A" ? aRecording : bRecording;
+    if (isRec) {
+      stopAndTranslate(speaker);
+    } else {
+      startRecording(speaker);
+    }
+  }, [aRecording, bRecording, startRecording, stopAndTranslate]);
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={tStyles.modal}>
@@ -282,12 +290,11 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
             <MicButton
               isRecording={bRecording}
               isProcessing={bProcessing}
-              onPressIn={() => startRecording("B")}
-              onPressOut={() => stopAndTranslate("B")}
+              onPress={() => toggleRecording("B")}
               color={Colors.primary}
             />
             <Pressable onPress={onClose} style={tStyles.micRowDone}>
-              <Text style={tStyles.closeButtonText}>Done</Text>
+              <Text style={tStyles.closeButtonText}>Close</Text>
             </Pressable>
           </View>
         </View>
@@ -323,12 +330,11 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
             <MicButton
               isRecording={aRecording}
               isProcessing={aProcessing}
-              onPressIn={() => startRecording("A")}
-              onPressOut={() => stopAndTranslate("A")}
+              onPress={() => toggleRecording("A")}
               color="#4ECDC4"
             />
             <Pressable onPress={onClose} style={tStyles.micRowDone}>
-              <Text style={tStyles.closeButtonText}>Done</Text>
+              <Text style={tStyles.closeButtonText}>Close</Text>
             </Pressable>
           </View>
         </View>
@@ -463,6 +469,7 @@ const styles = StyleSheet.create({
   // Translator pill
   translatorButton: {
     alignSelf: "center",
+    marginTop: 24,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
