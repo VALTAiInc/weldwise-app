@@ -236,60 +236,32 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={tStyles.modal}>
 
-        {/* Header */}
-        <View style={tStyles.modalHeader}>
-          <Text style={tStyles.modalTitle}>🌐  Translator</Text>
-          <Pressable onPress={onClose} style={tStyles.closeButton}>
-            <Text style={tStyles.closeButtonText}>Done</Text>
-          </Pressable>
-        </View>
+        {/*
+          ┌─────────────────────────┐  ← top of phone (Person B's edge)
+          │  Person B panel         │  rotated 180° — B reads this right-side up
+          ├─────────────────────────┤  ← center divider
+          │  Person A panel         │  no rotation — A reads this right-side up
+          └─────────────────────────┘  ← bottom of phone (Person A's edge)
 
-        {/* Person A */}
-        <View style={tStyles.panel}>
-          <View style={tStyles.panelHeader}>
-            <View style={[tStyles.speakerBadge, { backgroundColor: "#4ECDC4" }]}>
-              <Text style={tStyles.speakerBadgeText}>A</Text>
-            </View>
-            <LangPicker value={langA} onChange={setLangA} />
-          </View>
-          <View style={tStyles.textBox}>
-            {aTranscript ? (
-              <>
-                <Text style={tStyles.transcriptLabel}>Said</Text>
-                <Text style={tStyles.transcriptText}>{aTranscript}</Text>
-                <View style={[tStyles.dividerLine, { backgroundColor: "#4ECDC4" }]} />
-                <Text style={tStyles.translationLabel}>→ {getLang(langB).flag} {getLang(langB).label}</Text>
-                <Text style={tStyles.translationText}>{aTranslation}</Text>
-              </>
-            ) : (
-              <Text style={tStyles.placeholder}>Hold mic to speak</Text>
-            )}
-          </View>
-          <MicButton
-            isRecording={aRecording}
-            isProcessing={aProcessing}
-            onPressIn={() => startRecording("A")}
-            onPressOut={() => stopAndTranslate("A")}
-            color="#4ECDC4"
-          />
-        </View>
+          Within each panel (from that person's perspective, top→bottom):
+            [language picker + Done]   ← far from person
+            [text box]
+            [mic button]               ← closest to person's edge
+        */}
 
-        {/* Divider */}
-        <View style={tStyles.centerDivider}>
-          <View style={tStyles.centerDividerLine} />
-          <View style={tStyles.centerDividerBadge}>
-            <Text style={{ fontSize: 16 }}>🌐</Text>
-          </View>
-          <View style={tStyles.centerDividerLine} />
-        </View>
-
-        {/* Person B — rotated so B can read from the opposite side of the table */}
+        {/* ── Person B — top of screen, rotated 180° for the person across the table ── */}
         <View style={[tStyles.panel, tStyles.panelB]}>
+          {/* In JSX this header is "first" = visual top after rotation = far from B ✓ */}
           <View style={tStyles.panelHeader}>
-            <View style={[tStyles.speakerBadge, { backgroundColor: Colors.primary }]}>
-              <Text style={tStyles.speakerBadgeText}>B</Text>
+            <View style={tStyles.speakerRow}>
+              <View style={[tStyles.speakerBadge, { backgroundColor: Colors.primary }]}>
+                <Text style={tStyles.speakerBadgeText}>B</Text>
+              </View>
+              <LangPicker value={langB} onChange={setLangB} />
             </View>
-            <LangPicker value={langB} onChange={setLangB} />
+            <Pressable onPress={onClose} style={tStyles.closeButton}>
+              <Text style={tStyles.closeButtonText}>Done</Text>
+            </Pressable>
           </View>
           <View style={tStyles.textBox}>
             {bTranscript ? (
@@ -304,12 +276,59 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
               <Text style={tStyles.placeholder}>Hold mic to speak</Text>
             )}
           </View>
+          {/* In JSX this mic is "last" = visual bottom after rotation = closest to B's edge ✓ */}
           <MicButton
             isRecording={bRecording}
             isProcessing={bProcessing}
             onPressIn={() => startRecording("B")}
             onPressOut={() => stopAndTranslate("B")}
             color={Colors.primary}
+          />
+        </View>
+
+        {/* ── Center divider ── */}
+        <View style={tStyles.centerDivider}>
+          <View style={tStyles.centerDividerLine} />
+          <View style={tStyles.centerDividerBadge}>
+            <Text style={{ fontSize: 16 }}>🌐</Text>
+          </View>
+          <View style={tStyles.centerDividerLine} />
+        </View>
+
+        {/* ── Person A — bottom of screen, normal orientation ── */}
+        <View style={tStyles.panel}>
+          {/* Header is "first" = top of A's panel = far from A's edge ✓ */}
+          <View style={tStyles.panelHeader}>
+            <View style={tStyles.speakerRow}>
+              <View style={[tStyles.speakerBadge, { backgroundColor: "#4ECDC4" }]}>
+                <Text style={tStyles.speakerBadgeText}>A</Text>
+              </View>
+              <LangPicker value={langA} onChange={setLangA} />
+            </View>
+            <Pressable onPress={onClose} style={tStyles.closeButton}>
+              <Text style={tStyles.closeButtonText}>Done</Text>
+            </Pressable>
+          </View>
+          <View style={tStyles.textBox}>
+            {aTranscript ? (
+              <>
+                <Text style={tStyles.transcriptLabel}>Said</Text>
+                <Text style={tStyles.transcriptText}>{aTranscript}</Text>
+                <View style={[tStyles.dividerLine, { backgroundColor: "#4ECDC4" }]} />
+                <Text style={tStyles.translationLabel}>→ {getLang(langB).flag} {getLang(langB).label}</Text>
+                <Text style={tStyles.translationText}>{aTranslation}</Text>
+              </>
+            ) : (
+              <Text style={tStyles.placeholder}>Hold mic to speak</Text>
+            )}
+          </View>
+          {/* Mic is "last" = bottom of A's panel = closest to A's edge ✓ */}
+          <MicButton
+            isRecording={aRecording}
+            isProcessing={aProcessing}
+            onPressIn={() => startRecording("A")}
+            onPressOut={() => stopAndTranslate("A")}
+            color="#4ECDC4"
           />
         </View>
 
@@ -503,7 +522,16 @@ const tStyles = StyleSheet.create({
   panelB: {
     transform: [{ rotate: "180deg" }],
   },
-  panelHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  panelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  speakerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   speakerBadge: {
     width: 32,
     height: 32,
