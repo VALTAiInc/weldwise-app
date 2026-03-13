@@ -19,7 +19,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import Colors from "../../constants/colors";
 
 const heroImage = require("../../assets/images/HEROIMAGE.jpg");
@@ -223,6 +223,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
         await FileSystem.writeAsStringAsync(fileUri, result.audioBase64, {
           encoding: 'base64',
         });
+  
       const { sound } = await Audio.Sound.createAsync({ uri: fileUri }, { shouldPlay: true });
       soundRef.current = sound;
 
