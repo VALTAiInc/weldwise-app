@@ -2,7 +2,7 @@
   "expo": {
     "name": "VALT",
     "slug": "valt",
-    "version": "1.0.1",
+    "version": "1.12.0",
     "orientation": "default",
     "icon": "./assets/images/VALT_1024x1024_V2.png",
     "scheme": "weldwise",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thevalt.weldwise",
-      "buildNumber": "5",
+      "buildNumber": "12",
       "icon": "./assets/images/VALT_1024x1024_V2.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
