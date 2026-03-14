@@ -100,23 +100,59 @@ function TalkButton({
   isRecording: boolean; isProcessing: boolean;
   onPress: () => void; color: string;
 }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const anim_opacity = useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.parallel([
+            Animated.timing(scale, { toValue: 1.05, duration: 600, useNativeDriver: true }),
+            Animated.timing(anim_opacity, { toValue: 0.75, duration: 600, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(scale, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+            Animated.timing(anim_opacity, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+          ]),
+        ])
+      ).start();
+    } else {
+      scale.stopAnimation();
+      anim_opacity.stopAnimation();
+      Animated.parallel([
+        Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }),
+        Animated.timing(anim_opacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [isRecording]);
+
+  const handlePress = () => {
+    Haptics.impactAsync(
+      isRecording ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium
+    );
+    onPress();
+  };
+
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={isProcessing}
-      style={[
-        tStyles.talkButton,
-        { borderColor: isRecording ? color : "rgba(255,255,255,0.2)", backgroundColor: isRecording ? color : "rgba(255,255,255,0.06)" },
-        isProcessing && { opacity: 0.5 },
-      ]}
-    >
-      {isProcessing
-        ? <ActivityIndicator size="small" color="#fff" />
-        : <Text style={[tStyles.talkButtonText, { color: isRecording ? "#fff" : "rgba(255,255,255,0.75)" }]}>
-            {isRecording ? "Push to Send" : "Push to Talk"}
-          </Text>
-      }
-    </Pressable>
+    <Animated.View style={{ transform: [{ scale }], opacity: anim_opacity }}>
+      <Pressable
+        onPress={handlePress}
+        disabled={isProcessing}
+        style={[
+          tStyles.talkButton,
+          { borderColor: isRecording ? color : "rgba(255,255,255,0.2)", backgroundColor: isRecording ? color : "rgba(255,255,255,0.06)" },
+          isProcessing && { opacity: 0.5 },
+        ]}
+      >
+        {isProcessing
+          ? <ActivityIndicator size="small" color="#fff" />
+          : <Text style={[tStyles.talkButtonText, { color: isRecording ? "#fff" : "rgba(255,255,255,0.75)" }]}>
+              {isRecording ? "Push to Send" : "Push to Talk"}
+            </Text>
+        }
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -615,6 +651,7 @@ const tStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 30,
+    opacity: 0.5,
   },
   micOuter: { alignItems: "center", justifyContent: "center", height: 80 },
   micPulse: {
