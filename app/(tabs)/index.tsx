@@ -175,6 +175,14 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
 
   const startRecording = useCallback(async (speaker: "A" | "B") => {
     try {
+      setARecording(false);
+      setBRecording(false);
+
+      if (recordingRef.current) {
+        try { await recordingRef.current.stopAndUnloadAsync(); } catch {}
+        recordingRef.current = null;
+      }
+
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
         Alert.alert("Permission required", "Microphone access is needed for translation.");
