@@ -31,7 +31,7 @@ const API_BASE = "https://weld-wise-backend-gold.replit.app";
 // ─── Languages ────────────────────────────────────────────────────────────────
 
 const LANGUAGES = [
-  { code: "en", label: "English",   flag: "🇺🇸" },
+  { code: "en", label: "English",   flag: "🇨🇦" },
   { code: "es", label: "Español",   flag: "🇲🇽" },
   { code: "fr", label: "Français",  flag: "🇫🇷" },
   { code: "de", label: "Deutsch",   flag: "🇩🇪" },
