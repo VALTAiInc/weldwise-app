@@ -46,21 +46,22 @@ const LANGUAGES = [
   { code: "el",    label: "Greek",           flag: "🇬🇷" },
 ];
 
-function getLang(code: string) {
+function getLang(code: string | null) {
+  if (!code) return { code: "", label: "Select Language", flag: "🌐" };
   return LANGUAGES.find((l) => l.code === code) ?? LANGUAGES[0];
 }
 
 // ─── Language Picker — centered modal overlay ─────────────────────────────────
 
-function LangPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+function LangPicker({ value, onChange }: { value: string | null; onChange: (c: string) => void }) {
   const [open, setOpen] = useState(false);
   const current = getLang(value);
 
   return (
     <View style={{ flex: 1 }}>
-      <Pressable onPress={() => setOpen(true)} style={tStyles.langButton}>
+      <Pressable onPress={() => setOpen(true)} style={[tStyles.langButton, !value && { borderColor: "rgba(255,255,255,0.25)" }]}>
         <Text style={{ fontSize: 18 }}>{current.flag}</Text>
-        <Text style={tStyles.langButtonText}>{current.label}</Text>
+        <Text style={[tStyles.langButtonText, !value && { color: "rgba(255,255,255,0.4)", fontStyle: "italic" }]}>{current.label}</Text>
         <Text style={tStyles.langChevron}>▼</Text>
       </Pressable>
 
@@ -95,10 +96,10 @@ function LangPicker({ value, onChange }: { value: string; onChange: (c: string) 
 // ─── Talk Button ──────────────────────────────────────────────────────────────
 
 function TalkButton({
-  isRecording, isProcessing, onPress, color,
+  isRecording, isProcessing, onPress, color, disabled = false,
 }: {
   isRecording: boolean; isProcessing: boolean;
-  onPress: () => void; color: string;
+  onPress: () => void; color: string; disabled?: boolean;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const anim_opacity = useRef(new Animated.Value(1)).current;
@@ -138,11 +139,11 @@ function TalkButton({
     <Animated.View style={{ transform: [{ scale }], opacity: anim_opacity }}>
       <Pressable
         onPress={handlePress}
-        disabled={isProcessing}
+        disabled={isProcessing || disabled}
         style={[
           tStyles.talkButton,
           { borderColor: isRecording ? color : "rgba(255,255,255,0.2)", backgroundColor: isRecording ? color : "rgba(255,255,255,0.06)" },
-          isProcessing && { opacity: 0.5 },
+          (isProcessing || disabled) && { opacity: 0.35 },
         ]}
       >
         {isProcessing
@@ -159,8 +160,8 @@ function TalkButton({
 // ─── Translator Modal ─────────────────────────────────────────────────────────
 
 function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const [langA, setLangA] = useState("en");
-  const [langB, setLangB] = useState("es");
+  const [langA, setLangA] = useState<string>("en");
+  const [langB, setLangB] = useState<string | null>(null);
   const [aRecording, setARecording] = useState(false);
   const [aProcessing, setAProcessing] = useState(false);
   const [aTranscript, setATranscript] = useState("");
@@ -183,7 +184,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
   const handleClose = useCallback(() => {
     clearContent();
     setLangA("en");
-    setLangB("es");
+    setLangB(null);
     onClose();
   }, [clearContent, onClose]);
 
@@ -311,7 +312,9 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
             <LangPicker value={langB} onChange={(c) => { setLangB(c); clearContent(); }} />
           </View>
           <View style={tStyles.textBox}>
-            {bTranscript || bTranslation ? (
+            {!langA || !langB ? (
+              <Text style={tStyles.placeholder}>Select languages to start</Text>
+            ) : bTranscript || bTranslation ? (
               <>
                 {bTranscript ? (
                   <>
@@ -337,6 +340,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
               isProcessing={bProcessing}
               onPress={() => toggleRecording("B")}
               color={Colors.primary}
+              disabled={!langA || !langB}
             />
             <Pressable onPress={handleClose} style={tStyles.micRowDone}>
               <Text style={tStyles.closeButtonText}>Close</Text>
@@ -359,7 +363,9 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
             <LangPicker value={langA} onChange={(c) => { setLangA(c); clearContent(); }} />
           </View>
           <View style={tStyles.textBox}>
-            {aTranscript || aTranslation ? (
+            {!langA || !langB ? (
+              <Text style={tStyles.placeholder}>Select languages to start</Text>
+            ) : aTranscript || aTranslation ? (
               <>
                 {aTranscript ? (
                   <>
@@ -385,6 +391,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
               isProcessing={aProcessing}
               onPress={() => toggleRecording("A")}
               color="#4ECDC4"
+              disabled={!langA || !langB}
             />
             <Pressable onPress={handleClose} style={tStyles.micRowDone}>
               <Text style={tStyles.closeButtonText}>Close</Text>

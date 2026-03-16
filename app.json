@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thevalt.weldwise",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "icon": "./assets/images/VALT_1024x1024_V4.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
