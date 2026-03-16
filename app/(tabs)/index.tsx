@@ -173,6 +173,20 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
+  const clearContent = useCallback(() => {
+    setATranscript("");
+    setATranslation("");
+    setBTranscript("");
+    setBTranslation("");
+  }, []);
+
+  const handleClose = useCallback(() => {
+    clearContent();
+    setLangA("en");
+    setLangB("es");
+    onClose();
+  }, [clearContent, onClose]);
+
   const startRecording = useCallback(async (speaker: "A" | "B") => {
     try {
       setARecording(false);
@@ -275,7 +289,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
   }, [aRecording, bRecording, startRecording, stopAndTranslate]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <SafeAreaView style={tStyles.modal}>
 
         {/*
@@ -294,7 +308,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
         {/* ── Person B — top of screen, rotated 180° for the person across the table ── */}
         <View style={[tStyles.panel, tStyles.panelB]}>
           <View style={tStyles.panelHeader}>
-            <LangPicker value={langB} onChange={setLangB} />
+            <LangPicker value={langB} onChange={(c) => { setLangB(c); clearContent(); }} />
           </View>
           <View style={tStyles.textBox}>
             {bTranscript || bTranslation ? (
@@ -324,7 +338,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
               onPress={() => toggleRecording("B")}
               color={Colors.primary}
             />
-            <Pressable onPress={onClose} style={tStyles.micRowDone}>
+            <Pressable onPress={handleClose} style={tStyles.micRowDone}>
               <Text style={tStyles.closeButtonText}>Close</Text>
             </Pressable>
           </View>
@@ -342,7 +356,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
         {/* ── Person A — bottom of screen, normal orientation ── */}
         <View style={tStyles.panel}>
           <View style={tStyles.panelHeader}>
-            <LangPicker value={langA} onChange={setLangA} />
+            <LangPicker value={langA} onChange={(c) => { setLangA(c); clearContent(); }} />
           </View>
           <View style={tStyles.textBox}>
             {aTranscript || aTranslation ? (
@@ -372,7 +386,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
               onPress={() => toggleRecording("A")}
               color="#4ECDC4"
             />
-            <Pressable onPress={onClose} style={tStyles.micRowDone}>
+            <Pressable onPress={handleClose} style={tStyles.micRowDone}>
               <Text style={tStyles.closeButtonText}>Close</Text>
             </Pressable>
           </View>
