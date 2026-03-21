@@ -31,23 +31,23 @@ const API_BASE = "https://weldwise-backend-gold-production.up.railway.app";
 // ─── Languages ────────────────────────────────────────────────────────────────
 
 const LANGUAGES = [
-  { code: "en", label: "English",   flag: "🇨🇦" },
-  { code: "es", label: "Español",   flag: "🇲🇽" },
-  { code: "fr", label: "Français",  flag: "🇫🇷" },
-  { code: "de", label: "Deutsch",   flag: "🇩🇪" },
-  { code: "pt", label: "Português", flag: "🇧🇷" },
-  { code: "zh", label: "中文",       flag: "🇨🇳" },
-  { code: "ja", label: "日本語",      flag: "🇯🇵" },
-  { code: "ko", label: "한국어",      flag: "🇰🇷" },
-  { code: "ar", label: "العربية",    flag: "🇸🇦" },
-  { code: "hi", label: "हिंदी",       flag: "🇮🇳" },
-  { code: "fil", label: "Filipino",  flag: "🇵🇭" },
-  { code: "ar-LB", label: "Lebanese Arabic", flag: "🇱🇧" },
-  { code: "el",    label: "Greek",           flag: "🇬🇷" },
+  { code: "en",    label: "English",    native: "English",      flag: "🇺🇸" },
+  { code: "es",    label: "Spanish",    native: "Español",      flag: "🇲🇽" },
+  { code: "fr",    label: "French",     native: "Français",     flag: "🇫🇷" },
+  { code: "de",    label: "German",     native: "Deutsch",      flag: "🇩🇪" },
+  { code: "pt",    label: "Portuguese", native: "Português",    flag: "🇧🇷" },
+  { code: "zh",    label: "Chinese",    native: "中文",          flag: "🇨🇳" },
+  { code: "ja",    label: "Japanese",   native: "日本語",        flag: "🇯🇵" },
+  { code: "ko",    label: "Korean",     native: "한국어",        flag: "🇰🇷" },
+  { code: "ar",    label: "Arabic",     native: "العربية",      flag: "🇸🇦" },
+  { code: "hi",    label: "Hindi",      native: "हिंदी",         flag: "🇮🇳" },
+  { code: "fil",   label: "Filipino",   native: "Filipino",     flag: "🇵🇭" },
+  { code: "ar-LB", label: "Lebanese",   native: "عربي لبناني",  flag: "🇱🇧" },
+  { code: "el",    label: "Greek",      native: "Ελληνικά",     flag: "🇬🇷" },
 ];
 
 function getLang(code: string | null) {
-  if (!code) return { code: "", label: "Select Language", flag: "🌐" };
+  if (!code) return { code: "", label: "Select Language", native: "", flag: "🌐" };
   return LANGUAGES.find((l) => l.code === code) ?? LANGUAGES[0];
 }
 
@@ -77,11 +77,16 @@ function LangPicker({ value, onChange }: { value: string | null; onChange: (c: s
                   onPress={() => { onChange(lang.code); setOpen(false); }}
                 >
                   <Text style={{ fontSize: 22 }}>{lang.flag}</Text>
-                  <Text style={[tStyles.langOptionText, lang.code === value && tStyles.langOptionTextActive]}>
-                    {lang.label}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[tStyles.langOptionText, lang.code === value && tStyles.langOptionTextActive]}>
+                      {lang.label}
+                    </Text>
+                    {lang.native !== lang.label && (
+                      <Text style={tStyles.langOptionNative}>{lang.native}</Text>
+                    )}
+                  </View>
                   {lang.code === value && (
-                    <Ionicons name="checkmark" size={18} color={Colors.primary} style={{ marginLeft: "auto" }} />
+                    <Ionicons name="checkmark" size={18} color={Colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -769,6 +774,7 @@ const tStyles = StyleSheet.create({
     gap: 12,
   },
   langOptionActive: { backgroundColor: "rgba(254,119,37,0.15)" },
-  langOptionText: { color: "rgba(255,255,255,0.7)", fontSize: 16, fontWeight: "500" },
+  langOptionText: { color: "rgba(255,255,255,0.9)", fontSize: 16, fontWeight: "600" },
   langOptionTextActive: { color: Colors.primary, fontWeight: "700" },
+  langOptionNative: { color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 1 },
 });
