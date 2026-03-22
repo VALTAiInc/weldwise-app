@@ -31,7 +31,7 @@ const API_BASE = "https://weldwise-backend-gold-production.up.railway.app";
 // ─── Languages ────────────────────────────────────────────────────────────────
 
 const LANGUAGES = [
-  { code: "en",    label: "English",    native: "English",      flag: "🇺🇸" },
+  { code: "en",    label: "English",    native: "English",      flag: "🇨🇦" },
   { code: "es",    label: "Spanish",    native: "Español",      flag: "🇲🇽" },
   { code: "fr",    label: "French",     native: "Français",     flag: "🇫🇷" },
   { code: "de",    label: "German",     native: "Deutsch",      flag: "🇩🇪" },
