@@ -395,7 +395,7 @@ export default function TalkScreen() {
       addMessage("assistant", reply);
 
         // TTS: speak first chunk, once per reply
-      const ttsText = reply.replace(/\s+/g, " ").trim().slice(0, 220);
+      const ttsText = reply.replace(/\s+/g, " ").trim().slice(0, 500);
 
         if (ttsText) {
           const now = Date.now();
