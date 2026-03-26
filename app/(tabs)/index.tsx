@@ -26,7 +26,7 @@ import Colors from "../../constants/colors";
 const heroImage = require("../../assets/images/HEROIMAGE.jpg");
 const logoImage = require("../../assets/images/LOGOVALT.png");
 
-const API_BASE = "https://weldwise-backend-gold-production.up.railway.app";
+const API_BASE = "https://bridge-backend-production-b481.up.railway.app";
 
 const LANGUAGES = [
   { code: "en", label: "English",   flag: "🇺🇸" },
