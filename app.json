@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thevalt.weldwise",
-      "buildNumber": "16",
+      "buildNumber": "27",
       "icon": "./assets/images/VALT_1024x1024_V4.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -52,8 +52,9 @@
         "origin": "https://replit.com/"
       },
       "eas": {
-        "projectId": "abe7e45a-fe56-46b8-afcf-ceb472f6483c"
+        "projectId": "c9103cf5-33b0-413d-a04a-f10435886da3"
       }
-    }
+    },
+    "owner": "hurricanemusic"
   }
 }
