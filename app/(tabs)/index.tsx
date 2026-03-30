@@ -90,10 +90,10 @@ function LangPicker({ value, onChange }: { value: string; onChange: (c: string) 
 // ─── Mic Button ───────────────────────────────────────────────────────────────
 
 function MicButton({
-  isRecording, isProcessing, onPressIn, onPressOut, color,
+  isRecording, isProcessing, onPress, color, flipped,
 }: {
   isRecording: boolean; isProcessing: boolean;
-  onPressIn: () => void; onPressOut: () => void; color: string;
+  onPress: () => void; color: string; flipped?: boolean;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -115,15 +115,14 @@ function MicButton({
   }, [isRecording]);
 
   return (
-    <View style={tStyles.micOuter}>
+    <View style={[tStyles.micOuter, flipped && { transform: [{ rotate: "180deg" }] }]}>
       <View style={tStyles.micButtonWrap}>
         {isRecording && (
           <Animated.View style={[tStyles.micPulse, { borderColor: color, transform: [{ scale: pulse }] }]} />
         )}
         <Animated.View style={{ transform: [{ scale }] }}>
           <Pressable
-            onPressIn={onPressIn}
-            onPressOut={onPressOut}
+            onPress={onPress}
             disabled={isProcessing}
             style={[
               tStyles.micButton,
@@ -139,7 +138,7 @@ function MicButton({
         </Animated.View>
       </View>
       <Text style={[tStyles.micHint, { color: isRecording ? color : "rgba(255,255,255,0.25)" }]}>
-        {isProcessing ? "Translating..." : isRecording ? "Release to translate" : "Hold to speak"}
+        {isProcessing ? "Translating..." : isRecording ? "Tap to translate" : "Tap to speak"}
       </Text>
     </View>
   );
@@ -149,13 +148,13 @@ function MicButton({
 
 function PersonPanel({
   lang, setLang, transcript, translation, targetLang,
-  isRecording, isProcessing, onPressIn, onPressOut,
+  isRecording, isProcessing, onPress,
   color, flipped, onClose,
 }: {
   lang: string; setLang: (c: string) => void;
   transcript: string; translation: string; targetLang: string;
   isRecording: boolean; isProcessing: boolean;
-  onPressIn: () => void; onPressOut: () => void;
+  onPress: () => void;
   color: string; flipped: boolean; onClose: () => void;
 }) {
   const content = (
@@ -179,7 +178,7 @@ function PersonPanel({
             <Text style={tStyles.translationText}>{translation}</Text>
           </>
         ) : (
-          <Text style={tStyles.placeholder}>Hold mic to speak</Text>
+          <Text style={tStyles.placeholder}>Tap mic to speak</Text>
         )}
       </View>
     </View>
@@ -189,9 +188,9 @@ function PersonPanel({
     <MicButton
       isRecording={isRecording}
       isProcessing={isProcessing}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
+      onPress={onPress}
       color={color}
+      flipped={flipped}
     />
   );
 
@@ -219,6 +218,8 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
+  const activeSpeakerRef = useRef<"A" | "B" | null>(null);
+
   const startRecording = useCallback(async (speaker: "A" | "B") => {
     try {
       if (recordingRef.current) {
@@ -235,6 +236,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       recordingRef.current = recording;
+      activeSpeakerRef.current = speaker;
       speaker === "A" ? setARecording(true) : setBRecording(true);
     } catch (err) {
       console.error("startRecording:", err);
@@ -250,6 +252,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
 
     speaker === "A" ? setARecording(false) : setBRecording(false);
     speaker === "A" ? setAProcessing(true) : setBProcessing(true);
+    activeSpeakerRef.current = null;
 
     try {
       await recording.stopAndUnloadAsync();
@@ -303,6 +306,15 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
     }
   }, [langA, langB]);
 
+  const toggleRecording = useCallback((speaker: "A" | "B") => {
+    const isCurrentlyRecording = speaker === "A" ? aRecording : bRecording;
+    if (isCurrentlyRecording) {
+      stopAndTranslate(speaker);
+    } else {
+      startRecording(speaker);
+    }
+  }, [aRecording, bRecording, startRecording, stopAndTranslate]);
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={tStyles.modal}>
@@ -311,8 +323,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
           lang={langB} setLang={setLangB}
           transcript={bTranscript} translation={bTranslation} targetLang={langA}
           isRecording={bRecording} isProcessing={bProcessing}
-          onPressIn={() => startRecording("B")}
-          onPressOut={() => stopAndTranslate("B")}
+          onPress={() => toggleRecording("B")}
           color={Colors.primary} flipped={true} onClose={onClose}
         />
 
@@ -328,8 +339,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
           lang={langA} setLang={setLangA}
           transcript={aTranscript} translation={aTranslation} targetLang={langB}
           isRecording={aRecording} isProcessing={aProcessing}
-          onPressIn={() => startRecording("A")}
-          onPressOut={() => stopAndTranslate("A")}
+          onPress={() => toggleRecording("A")}
           color="#4ECDC4" flipped={false} onClose={onClose}
         />
 
