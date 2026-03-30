@@ -47,7 +47,7 @@ function getLang(code: string) {
 
 // ─── Language Picker — uses Modal so dropdown never clips ─────────────────────
 
-function LangPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+function LangPicker({ value, onChange, flipped }: { value: string; onChange: (c: string) => void; flipped?: boolean }) {
   const [open, setOpen] = useState(false);
   const current = getLang(value);
 
@@ -60,7 +60,7 @@ function LangPicker({ value, onChange }: { value: string; onChange: (c: string) 
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={tStyles.langModalOverlay} onPress={() => setOpen(false)}>
+        <Pressable style={[tStyles.langModalOverlay, flipped && { justifyContent: "flex-start" as const, paddingTop: 60 }]} onPress={() => setOpen(false)}>
           <View style={tStyles.langModalBox}>
             <Text style={tStyles.langModalTitle}>Select Language</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -160,7 +160,7 @@ function PersonPanel({
   const content = (
     <View style={[tStyles.panelContent, flipped && { transform: [{ rotate: "180deg" }] }]}>
       <View style={tStyles.panelHeader}>
-        <LangPicker value={lang} onChange={setLang} />
+        <LangPicker value={lang} onChange={setLang} flipped={flipped} />
         <Pressable onPress={onClose} style={tStyles.doneButton}>
           <Text style={tStyles.doneButtonText}>Done</Text>
         </Pressable>
@@ -171,11 +171,15 @@ function PersonPanel({
           <>
             <Text style={tStyles.transcriptLabel}>SAID</Text>
             <Text style={tStyles.transcriptText}>{transcript}</Text>
-            <View style={[tStyles.dividerLine, { backgroundColor: color }]} />
-            <Text style={tStyles.translationLabel}>
-              → {getLang(targetLang).flag} {getLang(targetLang).label}
-            </Text>
-            <Text style={tStyles.translationText}>{translation}</Text>
+            {translation ? (
+              <>
+                <View style={[tStyles.dividerLine, { backgroundColor: color }]} />
+                <Text style={tStyles.translationLabel}>
+                  → {getLang(targetLang).flag} {getLang(targetLang).label}
+                </Text>
+                <Text style={tStyles.translationText}>{translation}</Text>
+              </>
+            ) : null}
           </>
         ) : translation ? (
           <>
