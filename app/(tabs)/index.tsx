@@ -116,26 +116,28 @@ function MicButton({
 
   return (
     <View style={tStyles.micOuter}>
-      {isRecording && (
-        <Animated.View style={[tStyles.micPulse, { borderColor: color, transform: [{ scale: pulse }] }]} />
-      )}
-      <Animated.View style={{ transform: [{ scale }] }}>
-        <Pressable
-          onPressIn={onPressIn}
-          onPressOut={onPressOut}
-          disabled={isProcessing}
-          style={[
-            tStyles.micButton,
-            { backgroundColor: isRecording ? color : "rgba(255,255,255,0.1)" },
-            isProcessing && { opacity: 0.5 },
-          ]}
-        >
-          {isProcessing
-            ? <ActivityIndicator size="large" color="#fff" />
-            : <Ionicons name={isRecording ? "stop" : "mic"} size={28} color="#fff" />
-          }
-        </Pressable>
-      </Animated.View>
+      <View style={tStyles.micButtonWrap}>
+        {isRecording && (
+          <Animated.View style={[tStyles.micPulse, { borderColor: color, transform: [{ scale: pulse }] }]} />
+        )}
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Pressable
+            onPressIn={onPressIn}
+            onPressOut={onPressOut}
+            disabled={isProcessing}
+            style={[
+              tStyles.micButton,
+              { backgroundColor: isRecording ? color : "rgba(255,255,255,0.1)" },
+              isProcessing && { opacity: 0.5 },
+            ]}
+          >
+            {isProcessing
+              ? <ActivityIndicator size="large" color="#fff" />
+              : <Ionicons name={isRecording ? "stop" : "mic"} size={28} color="#fff" />
+            }
+          </Pressable>
+        </Animated.View>
+      </View>
       <Text style={[tStyles.micHint, { color: isRecording ? color : "rgba(255,255,255,0.25)" }]}>
         {isProcessing ? "Translating..." : isRecording ? "Release to translate" : "Hold to speak"}
       </Text>
@@ -294,6 +296,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
       soundRef.current = sound;
 
     } catch (err: any) {
+      speaker === "A" ? setARecording(false) : setBRecording(false);
       Alert.alert("Translation Error", err.message || "Something went wrong.");
     } finally {
       speaker === "A" ? setAProcessing(false) : setBProcessing(false);
@@ -427,14 +430,15 @@ const tStyles = StyleSheet.create({
   translationText: { color: "#fff", fontSize: 17, fontWeight: "700", lineHeight: 24 },
   placeholder: { color: "rgba(255,255,255,0.18)", fontSize: 14, textAlign: "center", fontStyle: "italic" },
   micOuter: { alignItems: "center", justifyContent: "center", paddingVertical: 4 },
-  micPulse: { position: "absolute", width: 76, height: 76, borderRadius: 38, borderWidth: 2 },
+  micButtonWrap: { width: 76, height: 76, alignItems: "center", justifyContent: "center" },
+  micPulse: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 38, borderWidth: 2 },
   micButton: { width: 68, height: 68, borderRadius: 34, alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.15)" },
   micHint: { marginTop: 6, fontSize: 11, fontWeight: "500" },
   centerDivider: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, height: 32 },
   centerDividerLine: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.08)" },
   centerDividerBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#1A1A2E", alignItems: "center", justifyContent: "center", marginHorizontal: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
-  langButton: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", minWidth: 160 },
-  langButtonText: { color: "#fff", fontSize: 14, fontWeight: "600", flex: 1 },
+  langButton: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", width: "100%" },
+  langButtonText: { color: "#fff", fontSize: 14, fontWeight: "600", flexShrink: 0 },
   langChevron: { color: "rgba(255,255,255,0.4)", fontSize: 10 },
   langModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 24 },
   langModalBox: { width: "100%", maxHeight: "70%", backgroundColor: "#1A1A2E", borderRadius: 20, padding: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },
