@@ -177,6 +177,13 @@ function PersonPanel({
             </Text>
             <Text style={tStyles.translationText}>{translation}</Text>
           </>
+        ) : translation ? (
+          <>
+            <Text style={tStyles.translationLabel}>
+              → {getLang(targetLang).flag} {getLang(targetLang).label}
+            </Text>
+            <Text style={tStyles.translationText}>{translation}</Text>
+          </>
         ) : (
           <Text style={tStyles.placeholder}>Tap mic to speak</Text>
         )}
@@ -285,9 +292,11 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
       if (speaker === "A") {
         setATranscript(result.transcript);
         setBTranslation(result.translation);
+        console.log("[Translate] setBTranslation:", result.translation?.slice(0,50));
       } else {
         setBTranscript(result.transcript);
         setATranslation(result.translation);
+        console.log("[Translate] setATranslation:", result.translation?.slice(0,50));
       }
 
       if (soundRef.current) {
