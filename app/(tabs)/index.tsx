@@ -26,7 +26,7 @@ import Colors from "../../constants/colors";
 const heroImage = require("../../assets/images/HEROIMAGE.jpg");
 const logoImage = require("../../assets/images/LOGOVALT.png");
 
-const API_BASE = "https://weldwise-backend-gold-production.up.railway.app";
+const API_BASE = "https://bridge-backend-production-b481.up.railway.app";
 
 const LANGUAGES = [
   { code: "en", label: "English",   flag: "🇨🇦" },
@@ -280,6 +280,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
       }
 
       const result = await response.json();
+      console.log("[Translate] status:", response.status, "result keys:", Object.keys(result), "transcript:", result.transcript?.slice(0,50), "translation:", result.translation?.slice(0,50));
 
       if (speaker === "A") {
         setATranscript(result.transcript);
