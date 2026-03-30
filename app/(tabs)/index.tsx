@@ -26,10 +26,10 @@ import Colors from "../../constants/colors";
 const heroImage = require("../../assets/images/HEROIMAGE.jpg");
 const logoImage = require("../../assets/images/LOGOVALT.png");
 
-const API_BASE = "https://bridge-backend-production-b481.up.railway.app";
+const API_BASE = "https://weldwise-backend-gold-production.up.railway.app";
 
 const LANGUAGES = [
-  { code: "en", label: "English",   flag: "🇺🇸" },
+  { code: "en", label: "English",   flag: "🇨🇦" },
   { code: "es", label: "Español",   flag: "🇲🇽" },
   { code: "fr", label: "Français",  flag: "🇫🇷" },
   { code: "de", label: "Deutsch",   flag: "🇩🇪" },
@@ -156,41 +156,46 @@ function PersonPanel({
   onPressIn: () => void; onPressOut: () => void;
   color: string; flipped: boolean; onClose: () => void;
 }) {
-  return (
-    <View style={tStyles.panel}>
-      {/* Rotate only the content, NOT the mic button — rotating the whole panel breaks iOS touch */}
-      <View style={[tStyles.panelContent, flipped && { transform: [{ rotate: "180deg" }] }]}>
-        <View style={tStyles.panelHeader}>
-          <LangPicker value={lang} onChange={setLang} />
-          <Pressable onPress={onClose} style={tStyles.doneButton}>
-            <Text style={tStyles.doneButtonText}>Done</Text>
-          </Pressable>
-        </View>
-
-        <View style={tStyles.textBox}>
-          {transcript ? (
-            <>
-              <Text style={tStyles.transcriptLabel}>SAID</Text>
-              <Text style={tStyles.transcriptText}>{transcript}</Text>
-              <View style={[tStyles.dividerLine, { backgroundColor: color }]} />
-              <Text style={tStyles.translationLabel}>
-                → {getLang(targetLang).flag} {getLang(targetLang).label}
-              </Text>
-              <Text style={tStyles.translationText}>{translation}</Text>
-            </>
-          ) : (
-            <Text style={tStyles.placeholder}>Hold mic to speak</Text>
-          )}
-        </View>
+  const content = (
+    <View style={[tStyles.panelContent, flipped && { transform: [{ rotate: "180deg" }] }]}>
+      <View style={tStyles.panelHeader}>
+        <LangPicker value={lang} onChange={setLang} />
+        <Pressable onPress={onClose} style={tStyles.doneButton}>
+          <Text style={tStyles.doneButtonText}>Done</Text>
+        </Pressable>
       </View>
 
-      <MicButton
-        isRecording={isRecording}
-        isProcessing={isProcessing}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        color={color}
-      />
+      <View style={tStyles.textBox}>
+        {transcript ? (
+          <>
+            <Text style={tStyles.transcriptLabel}>SAID</Text>
+            <Text style={tStyles.transcriptText}>{transcript}</Text>
+            <View style={[tStyles.dividerLine, { backgroundColor: color }]} />
+            <Text style={tStyles.translationLabel}>
+              → {getLang(targetLang).flag} {getLang(targetLang).label}
+            </Text>
+            <Text style={tStyles.translationText}>{translation}</Text>
+          </>
+        ) : (
+          <Text style={tStyles.placeholder}>Hold mic to speak</Text>
+        )}
+      </View>
+    </View>
+  );
+
+  const mic = (
+    <MicButton
+      isRecording={isRecording}
+      isProcessing={isProcessing}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      color={color}
+    />
+  );
+
+  return (
+    <View style={tStyles.panel}>
+      {flipped ? <>{mic}{content}</> : <>{content}{mic}</>}
     </View>
   );
 }
@@ -428,7 +433,7 @@ const tStyles = StyleSheet.create({
   centerDivider: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, height: 32 },
   centerDividerLine: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.08)" },
   centerDividerBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#1A1A2E", alignItems: "center", justifyContent: "center", marginHorizontal: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
-  langButton: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  langButton: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", minWidth: 160 },
   langButtonText: { color: "#fff", fontSize: 14, fontWeight: "600", flex: 1 },
   langChevron: { color: "rgba(255,255,255,0.4)", fontSize: 10 },
   langModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", padding: 24 },

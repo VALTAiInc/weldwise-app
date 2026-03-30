@@ -1,8 +1,9 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Image, Alert } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 
 const COLORS = {
   background: "#000000",
@@ -17,6 +18,22 @@ export default function BlueprintsImageScreen() {
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const topInset = isWeb ? 67 : insets.top;
+  const [imageUri, setImageUri] = useState<string | null>(null);
+
+  async function pickImage() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission required", "Photo library access is needed to select a blueprint image.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  }
 
   return (
     <View style={styles.root}>
@@ -37,25 +54,30 @@ export default function BlueprintsImageScreen() {
           </Pressable>
 
           <Text style={styles.headerTitle}>Blueprint image</Text>
-          <Text style={styles.headerSub}>Demo placeholder. Hook to image picker later.</Text>
+          <Text style={styles.headerSub}>Select a blueprint photo from your library.</Text>
         </View>
 
         <View style={styles.viewer}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="image-outline" size={44} color={COLORS.orange} />
-          </View>
-
-          <Text style={styles.title}>No image selected</Text>
-          <Text style={styles.sub}>
-            Later, this screen will let you pick a blueprint photo and view/zoom it.
-          </Text>
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.selectedImage} resizeMode="contain" />
+          ) : (
+            <>
+              <View style={styles.iconWrap}>
+                <Ionicons name="image-outline" size={44} color={COLORS.orange} />
+              </View>
+              <Text style={styles.title}>No image selected</Text>
+              <Text style={styles.sub}>
+                Pick a blueprint photo from your library to view it here.
+              </Text>
+            </>
+          )}
 
           <Pressable
-            onPress={() => {}}
+            onPress={pickImage}
             style={({ pressed }) => [styles.button, pressed && { opacity: 0.85 }]}
           >
-            <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-            <Text style={styles.buttonText}>Choose image (later)</Text>
+            <Ionicons name={imageUri ? "swap-horizontal-outline" : "cloud-upload-outline"} size={18} color="#fff" />
+            <Text style={styles.buttonText}>{imageUri ? "Choose different image" : "Choose image"}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -137,6 +159,12 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: "center",
     marginBottom: 20,
+  },
+  selectedImage: {
+    width: "100%",
+    height: 300,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   button: {
     flexDirection: "row",
