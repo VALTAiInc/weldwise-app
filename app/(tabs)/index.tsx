@@ -61,7 +61,7 @@ function LangPicker({ value, onChange, flipped }: { value: string; onChange: (c:
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={[tStyles.langModalOverlay, flipped && { justifyContent: "flex-start" as const, paddingTop: 60 }]} onPress={() => setOpen(false)}>
-          <View style={tStyles.langModalBox}>
+          <View style={[tStyles.langModalBox, flipped && { transform: [{ rotate: "180deg" }] }]}>
             <Text style={tStyles.langModalTitle}>Select Language</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               {LANGUAGES.map((lang) => (
