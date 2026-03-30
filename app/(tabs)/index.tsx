@@ -174,20 +174,12 @@ function PersonPanel({
             {translation ? (
               <>
                 <View style={[tStyles.dividerLine, { backgroundColor: color }]} />
-                <Text style={tStyles.translationLabel}>
-                  → {getLang(targetLang).flag} {getLang(targetLang).label}
-                </Text>
                 <Text style={tStyles.translationText}>{translation}</Text>
               </>
             ) : null}
           </>
         ) : translation ? (
-          <>
-            <Text style={tStyles.translationLabel}>
-              → {getLang(targetLang).flag} {getLang(targetLang).label}
-            </Text>
-            <Text style={tStyles.translationText}>{translation}</Text>
-          </>
+          <Text style={tStyles.translationText}>{translation}</Text>
         ) : (
           <Text style={tStyles.placeholder}>Tap mic to speak</Text>
         )}
