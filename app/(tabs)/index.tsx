@@ -29,16 +29,16 @@ const logoImage = require("../../assets/images/LOGOVALT.png");
 const API_BASE = "https://bridge-backend-production-b481.up.railway.app";
 
 const LANGUAGES = [
-  { code: "en", label: "English",   flag: "🇨🇦" },
-  { code: "es", label: "Español",   flag: "🇲🇽" },
-  { code: "fr", label: "Français",  flag: "🇫🇷" },
-  { code: "de", label: "Deutsch",   flag: "🇩🇪" },
-  { code: "pt", label: "Português", flag: "🇧🇷" },
-  { code: "zh", label: "中文",       flag: "🇨🇳" },
-  { code: "ja", label: "日本語",      flag: "🇯🇵" },
-  { code: "ko", label: "한국어",      flag: "🇰🇷" },
-  { code: "ar", label: "العربية",    flag: "🇸🇦" },
-  { code: "hi", label: "हिंदी",       flag: "🇮🇳" },
+  { code: "en", label: "English",   english: "English",    flag: "🇨🇦" },
+  { code: "es", label: "Español",   english: "Spanish",    flag: "🇲🇽" },
+  { code: "fr", label: "Français",  english: "French",     flag: "🇫🇷" },
+  { code: "de", label: "Deutsch",   english: "German",     flag: "🇩🇪" },
+  { code: "pt", label: "Português", english: "Portuguese", flag: "🇧🇷" },
+  { code: "zh", label: "中文",       english: "Chinese",    flag: "🇨🇳" },
+  { code: "ja", label: "日本語",      english: "Japanese",   flag: "🇯🇵" },
+  { code: "ko", label: "한국어",      english: "Korean",     flag: "🇰🇷" },
+  { code: "ar", label: "العربية",    english: "Arabic",     flag: "🇸🇦" },
+  { code: "hi", label: "हिंदी",       english: "Hindi",      flag: "🇮🇳" },
 ];
 
 function getLang(code: string) {
@@ -71,11 +71,16 @@ function LangPicker({ value, onChange, flipped }: { value: string; onChange: (c:
                   onPress={() => { onChange(lang.code); setOpen(false); }}
                 >
                   <Text style={{ fontSize: 22 }}>{lang.flag}</Text>
-                  <Text style={[tStyles.langOptionText, lang.code === value && tStyles.langOptionTextActive]}>
-                    {lang.label}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[tStyles.langOptionText, lang.code === value && tStyles.langOptionTextActive]}>
+                      {lang.english}
+                    </Text>
+                    {lang.english !== lang.label && (
+                      <Text style={tStyles.langOptionNative}>{lang.label}</Text>
+                    )}
+                  </View>
                   {lang.code === value && (
-                    <Ionicons name="checkmark" size={18} color={Colors.primary} style={{ marginLeft: "auto" }} />
+                    <Ionicons name="checkmark" size={18} color={Colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -463,4 +468,5 @@ const tStyles = StyleSheet.create({
   langOptionActive: { backgroundColor: "rgba(254,119,37,0.15)" },
   langOptionText: { color: "rgba(255,255,255,0.7)", fontSize: 15, fontWeight: "500" },
   langOptionTextActive: { color: Colors.primary, fontWeight: "700" },
+  langOptionNative: { color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 2 },
 });
