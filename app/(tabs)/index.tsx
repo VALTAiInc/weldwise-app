@@ -14,6 +14,8 @@ import {
   ScrollView,
   Animated,
   TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -155,12 +157,14 @@ function PersonPanel({
   lang, setLang, transcript, translation, targetLang,
   isRecording, isProcessing, onPress,
   color, flipped, onClose,
+  typedText, setTypedText, onSendTyped,
 }: {
   lang: string; setLang: (c: string) => void;
   transcript: string; translation: string; targetLang: string;
   isRecording: boolean; isProcessing: boolean;
   onPress: () => void;
   color: string; flipped: boolean; onClose: () => void;
+  typedText: string; setTypedText: (t: string) => void; onSendTyped: () => void;
 }) {
   const content = (
     <View style={[tStyles.panelContent, flipped && { transform: [{ rotate: "180deg" }] }]}>
@@ -172,22 +176,44 @@ function PersonPanel({
       </View>
 
       <View style={tStyles.textBox}>
-        {transcript ? (
-          <>
-            <Text style={tStyles.transcriptLabel}>SAID</Text>
-            <Text style={tStyles.transcriptText}>{transcript}</Text>
-            {translation ? (
-              <>
-                <View style={[tStyles.dividerLine, { backgroundColor: color }]} />
-                <Text style={tStyles.translationText}>{translation}</Text>
-              </>
-            ) : null}
-          </>
-        ) : translation ? (
-          <Text style={tStyles.translationText}>{translation}</Text>
-        ) : (
-          <Text style={tStyles.placeholder}>Tap mic to speak</Text>
-        )}
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {transcript ? (
+            <>
+              <Text style={tStyles.transcriptLabel}>SAID</Text>
+              <Text style={tStyles.transcriptText}>{transcript}</Text>
+              {translation ? (
+                <>
+                  <View style={[tStyles.dividerLine, { backgroundColor: color }]} />
+                  <Text style={tStyles.translationText}>{translation}</Text>
+                </>
+              ) : null}
+            </>
+          ) : translation ? (
+            <Text style={tStyles.translationText}>{translation}</Text>
+          ) : (
+            <Text style={tStyles.placeholder}>Tap mic to speak</Text>
+          )}
+        </ScrollView>
+      </View>
+
+      <View style={tStyles.typedRow}>
+        <TextInput
+          value={typedText}
+          onChangeText={setTypedText}
+          placeholder="Or type here..."
+          placeholderTextColor="rgba(255,255,255,0.35)"
+          style={tStyles.typedInput}
+          editable={!isProcessing}
+          onSubmitEditing={onSendTyped}
+          returnKeyType="send"
+        />
+        <Pressable
+          onPress={onSendTyped}
+          disabled={isProcessing || !typedText.trim()}
+          style={[tStyles.sendButton, (isProcessing || !typedText.trim()) && { opacity: 0.5 }]}
+        >
+          <Text style={tStyles.sendButtonText}>Send</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -222,6 +248,8 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
   const [bProcessing, setBProcessing] = useState(false);
   const [bTranscript, setBTranscript] = useState("");
   const [bTranslation, setBTranslation] = useState("");
+  const [aTyped, setATyped] = useState("");
+  const [bTyped, setBTyped] = useState("");
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -317,6 +345,60 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
     }
   }, [langA, langB]);
 
+  const sendTyped = useCallback(async (speaker: "A" | "B", text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const myLang = speaker === "A" ? langA : langB;
+    const theirLang = speaker === "A" ? langB : langA;
+
+    speaker === "A" ? setAProcessing(true) : setBProcessing(true);
+    speaker === "A" ? setATyped("") : setBTyped("");
+
+    try {
+      const response = await fetch(`${API_BASE}/api/translate-text`, {
+        method: "POST",
+        body: JSON.stringify({
+          text: trimmed,
+          sourceLanguage: myLang,
+          targetLanguage: theirLang,
+          callerApp: "WeldWise",
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Translation failed");
+      }
+
+      const result = await response.json();
+
+      if (speaker === "A") {
+        setATranscript(result.transcript ?? trimmed);
+        setBTranslation(result.translation);
+      } else {
+        setBTranscript(result.transcript ?? trimmed);
+        setATranslation(result.translation);
+      }
+
+      if (result.audioBase64) {
+        if (soundRef.current) {
+          await soundRef.current.unloadAsync();
+          soundRef.current = null;
+        }
+        const fileUri = (FileSystem.cacheDirectory ?? "") + "ww_translation.mp3";
+        await FileSystem.writeAsStringAsync(fileUri, result.audioBase64, { encoding: 'base64' });
+        const { sound } = await Audio.Sound.createAsync({ uri: fileUri }, { shouldPlay: true });
+        soundRef.current = sound;
+      }
+    } catch (err: any) {
+      Alert.alert("Translation Error", err.message || "Something went wrong.");
+    } finally {
+      speaker === "A" ? setAProcessing(false) : setBProcessing(false);
+    }
+  }, [langA, langB]);
+
   const toggleRecording = useCallback((speaker: "A" | "B") => {
     const isCurrentlyRecording = speaker === "A" ? aRecording : bRecording;
     if (isCurrentlyRecording) {
@@ -329,31 +411,40 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={tStyles.modal}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
 
-        <PersonPanel
-          lang={langB} setLang={setLangB}
-          transcript={bTranscript} translation={bTranslation} targetLang={langA}
-          isRecording={bRecording} isProcessing={bProcessing}
-          onPress={() => toggleRecording("B")}
-          color={Colors.primary} flipped={true} onClose={onClose}
-        />
+          <PersonPanel
+            lang={langB} setLang={setLangB}
+            transcript={bTranscript} translation={bTranslation} targetLang={langA}
+            isRecording={bRecording} isProcessing={bProcessing}
+            onPress={() => toggleRecording("B")}
+            color={Colors.primary} flipped={true} onClose={onClose}
+            typedText={bTyped} setTypedText={setBTyped}
+            onSendTyped={() => sendTyped("B", bTyped)}
+          />
 
-        <View style={tStyles.centerDivider}>
-          <View style={tStyles.centerDividerLine} />
-          <View style={tStyles.centerDividerBadge}>
-            <Text style={{ fontSize: 16 }}>🌐</Text>
+          <View style={tStyles.centerDivider}>
+            <View style={tStyles.centerDividerLine} />
+            <View style={tStyles.centerDividerBadge}>
+              <Text style={{ fontSize: 16 }}>🌐</Text>
+            </View>
+            <View style={tStyles.centerDividerLine} />
           </View>
-          <View style={tStyles.centerDividerLine} />
-        </View>
 
-        <PersonPanel
-          lang={langA} setLang={setLangA}
-          transcript={aTranscript} translation={aTranslation} targetLang={langB}
-          isRecording={aRecording} isProcessing={aProcessing}
-          onPress={() => toggleRecording("A")}
-          color="#4ECDC4" flipped={false} onClose={onClose}
-        />
+          <PersonPanel
+            lang={langA} setLang={setLangA}
+            transcript={aTranscript} translation={aTranslation} targetLang={langB}
+            isRecording={aRecording} isProcessing={aProcessing}
+            onPress={() => toggleRecording("A")}
+            color="#4ECDC4" flipped={false} onClose={onClose}
+            typedText={aTyped} setTypedText={setATyped}
+            onSendTyped={() => sendTyped("A", aTyped)}
+          />
 
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -443,7 +534,7 @@ const tStyles = StyleSheet.create({
   panelHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   doneButton: { backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 7, borderRadius: 16 },
   doneButtonText: { color: "#fff", fontWeight: "700", fontSize: 13 },
-  textBox: { flex: 1, marginVertical: 10, backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.07)", justifyContent: "center" },
+  textBox: { flex: 1, marginVertical: 10, backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.07)" },
   transcriptLabel: { color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: "600", letterSpacing: 1.2, marginBottom: 4 },
   transcriptText: { color: "rgba(255,255,255,0.55)", fontSize: 13, fontStyle: "italic", lineHeight: 19 },
   dividerLine: { height: 1.5, marginVertical: 8, borderRadius: 1 },
@@ -469,4 +560,8 @@ const tStyles = StyleSheet.create({
   langOptionText: { color: "rgba(255,255,255,0.7)", fontSize: 15, fontWeight: "500" },
   langOptionTextActive: { color: Colors.primary, fontWeight: "700" },
   langOptionNative: { color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 2 },
+  typedRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  typedInput: { flex: 1, color: "#fff", backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  sendButton: { backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+  sendButtonText: { color: "#fff", fontWeight: "700", fontSize: 13 },
 });
