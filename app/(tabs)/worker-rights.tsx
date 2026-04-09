@@ -364,16 +364,9 @@ function ChatModal({
         <Text style={styles.title} numberOfLines={1}>
           {category.emoji} {category.title}
         </Text>
-        <View style={styles.headerRight}>
-          {speaking ? (
-            <Pressable onPress={stopSpeaking} hitSlop={12} style={styles.backBtn}>
-              <Ionicons name="pause-circle" size={28} color={ORANGE} />
-            </Pressable>
-          ) : null}
-          <Pressable onPress={onClose} style={styles.backBtn} hitSlop={12}>
-            <Ionicons name="close" size={26} color={TEXT} />
-          </Pressable>
-        </View>
+        <Pressable onPress={onClose} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="close" size={26} color={TEXT} />
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView
@@ -403,6 +396,15 @@ function ChatModal({
             </View>
           )}
         </ScrollView>
+
+        {speaking && (
+          <View style={styles.stopBarWrap} pointerEvents="box-none">
+            <Pressable onPress={stopSpeaking} style={styles.stopPill}>
+              <Ionicons name="pause-circle" size={20} color="#fff" />
+              <Text style={styles.stopPillText}>Tap to stop audio</Text>
+            </Pressable>
+          </View>
+        )}
 
         <View
           style={[
@@ -450,10 +452,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerRight: {
+  stopBarWrap: {
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  stopPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    backgroundColor: ORANGE,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    gap: 8,
+  },
+  stopPillText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   title: {
     color: TEXT,
