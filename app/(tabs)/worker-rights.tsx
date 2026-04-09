@@ -194,8 +194,10 @@ function ChatModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
+      console.log("speak response ok:", res.ok, res.status);
       if (!res.ok) throw new Error("speak " + res.status);
       const data = (await res.json()) as { audioBase64?: string };
+      console.log("audioBase64 length:", data?.audioBase64?.length);
       const audioBase64 = data?.audioBase64;
       if (!audioBase64) throw new Error("no audio");
 
@@ -213,11 +215,13 @@ function ChatModal({
       await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
         encoding: "base64",
       });
+      console.log("file written to:", fileUri);
 
       const { sound } = await Audio.Sound.createAsync(
         { uri: fileUri },
         { shouldPlay: true }
       );
+      console.log("sound created, playing");
       soundRef.current = sound;
       setSpeaking(true);
       sound.setOnPlaybackStatusUpdate((status) => {
@@ -225,7 +229,8 @@ function ChatModal({
           setSpeaking(false);
         }
       });
-    } catch {
+    } catch (error) {
+      console.error("SPEAK FAILED:", error);
       setSpeaking(false);
     }
   }
