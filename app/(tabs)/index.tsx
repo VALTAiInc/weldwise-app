@@ -486,6 +486,16 @@ export default function HomeScreen() {
         </View>
         <Pressable
           onPress={() => {
+            if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push("/lockbox");
+          }}
+          style={({ pressed }) => [styles.lockBoxButton, pressed && styles.lockBoxButtonPressed]}
+        >
+          <Text style={styles.lockBoxIcon}>⛑️</Text>
+          <Text style={styles.lockBoxText}>LOCK BOX TALK</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
             if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setTranslatorVisible(true);
           }}
@@ -519,6 +529,10 @@ const styles = StyleSheet.create({
   ctaButton: { backgroundColor: Colors.primary, borderRadius: 34, paddingVertical: 16, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   ctaButtonPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   ctaText: { fontSize: 16, color: Colors.textDark, letterSpacing: 0.5, fontWeight: "900" },
+  lockBoxButton: { alignSelf: "center", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, borderWidth: 2, borderColor: Colors.primary, borderRadius: 34, paddingVertical: 13, paddingHorizontal: 36, backgroundColor: "#111", marginBottom: 12 },
+  lockBoxButtonPressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
+  lockBoxIcon: { fontSize: 20 },
+  lockBoxText: { color: Colors.primary, fontSize: 15, fontWeight: "800", letterSpacing: 0.6 },
   translatorButton: { alignSelf: "center", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 34, paddingVertical: 9, paddingHorizontal: 28, backgroundColor: "#111" },
   translatorButtonPressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
   translatorGlobe: { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },

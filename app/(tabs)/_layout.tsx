@@ -123,6 +123,20 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="worker-rights"
+        options={{
+          title: "Rights",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "shield" : "shield-outline"}
+              size={Math.min(size, 24)}
+              color={color}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
