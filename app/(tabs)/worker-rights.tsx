@@ -200,7 +200,10 @@ function ChatModal({
       const b64 = data?.audioBase64;
       if (!b64) throw new Error("no audio");
 
-      const path = `${FileSystem.cacheDirectory}rights_tts_${Date.now()}.mp3`;
+      const path = `${FileSystem.cacheDirectory}rights_tts.mp3`;
+      try {
+        await FileSystem.deleteAsync(path, { idempotent: true });
+      } catch {}
       await FileSystem.writeAsStringAsync(path, b64, {
         encoding: FileSystem.EncodingType.Base64,
       });
@@ -226,6 +229,19 @@ function ChatModal({
     } catch {
       setSpeaking(false);
     }
+  }
+
+  async function stopSpeaking() {
+    if (!soundRef.current) {
+      setSpeaking(false);
+      return;
+    }
+    try {
+      await soundRef.current.stopAsync();
+      await soundRef.current.unloadAsync();
+    } catch {}
+    soundRef.current = null;
+    setSpeaking(false);
   }
 
   useEffect(() => {
@@ -285,7 +301,10 @@ function ChatModal({
       ]);
     } finally {
       setLoading(false);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+      setTimeout(
+        () => scrollRef.current?.scrollTo({ y: 0, animated: true }),
+        50
+      );
     }
   }
 
@@ -318,24 +337,30 @@ function ChatModal({
       ]);
     } finally {
       setLoading(false);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+      setTimeout(
+        () => scrollRef.current?.scrollTo({ y: 0, animated: true }),
+        50
+      );
     }
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.backBtn}>
-          {speaking ? (
-            <Ionicons name="volume-high" size={22} color={ORANGE} />
-          ) : null}
-        </View>
+        <View style={styles.backBtn} />
         <Text style={styles.title} numberOfLines={1}>
           {category.emoji} {category.title}
         </Text>
-        <Pressable onPress={onClose} style={styles.backBtn} hitSlop={12}>
-          <Ionicons name="close" size={26} color={TEXT} />
-        </Pressable>
+        <View style={styles.headerRight}>
+          {speaking ? (
+            <Pressable onPress={stopSpeaking} hitSlop={12} style={styles.backBtn}>
+              <Ionicons name="pause-circle" size={28} color={ORANGE} />
+            </Pressable>
+          ) : null}
+          <Pressable onPress={onClose} style={styles.backBtn} hitSlop={12}>
+            <Ionicons name="close" size={26} color={TEXT} />
+          </Pressable>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -347,9 +372,6 @@ function ChatModal({
           ref={scrollRef}
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
-          onContentSizeChange={() =>
-            scrollRef.current?.scrollToEnd({ animated: true })
-          }
         >
           {messages.map((m) => (
             <View
@@ -414,6 +436,11 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   title: {
     color: TEXT,
