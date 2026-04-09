@@ -196,9 +196,18 @@ function ChatModal({
       });
       console.log("speak response ok:", res.ok, res.status);
       if (!res.ok) throw new Error("speak " + res.status);
-      const data = (await res.json()) as { audioBase64?: string };
-      console.log("audioBase64 length:", data?.audioBase64?.length);
-      const audioBase64 = data?.audioBase64;
+      const arrayBuffer = await res.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(
+          null,
+          Array.from(bytes.subarray(i, i + chunkSize))
+        );
+      }
+      const audioBase64 = btoa(binary);
+      console.log("audioBase64 length:", audioBase64.length);
       if (!audioBase64) throw new Error("no audio");
 
       await Audio.setAudioModeAsync({
