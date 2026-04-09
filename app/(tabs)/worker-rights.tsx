@@ -188,7 +188,6 @@ function ChatModal({
   }, []);
 
   async function speak(text: string) {
-    setSpeaking(true);
     try {
       const res = await fetch(`${API_BASE}/api/speak`, {
         method: "POST",
@@ -197,33 +196,33 @@ function ChatModal({
       });
       if (!res.ok) throw new Error("speak " + res.status);
       const data = (await res.json()) as { audioBase64?: string };
-      const b64 = data?.audioBase64;
-      if (!b64) throw new Error("no audio");
+      const audioBase64 = data?.audioBase64;
+      if (!audioBase64) throw new Error("no audio");
 
-      const path = `${FileSystem.cacheDirectory}rights_tts.mp3`;
-      try {
-        await FileSystem.deleteAsync(path, { idempotent: true });
-      } catch {}
-      await FileSystem.writeAsStringAsync(path, b64, {
-        encoding: FileSystem.EncodingType.Base64,
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: false,
       });
 
       if (soundRef.current) {
-        await soundRef.current.unloadAsync().catch(() => {});
+        await soundRef.current.unloadAsync();
         soundRef.current = null;
       }
 
+      const fileUri = (FileSystem.cacheDirectory ?? "") + "rights_tts.mp3";
+      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
+        encoding: "base64",
+      });
+
       const { sound } = await Audio.Sound.createAsync(
-        { uri: path },
+        { uri: fileUri },
         { shouldPlay: true }
       );
       soundRef.current = sound;
+      setSpeaking(true);
       sound.setOnPlaybackStatusUpdate((status) => {
-        if (!status.isLoaded) return;
-        if (status.didJustFinish) {
+        if (status.isLoaded && status.didJustFinish) {
           setSpeaking(false);
-          sound.unloadAsync().catch(() => {});
-          if (soundRef.current === sound) soundRef.current = null;
         }
       });
     } catch {
