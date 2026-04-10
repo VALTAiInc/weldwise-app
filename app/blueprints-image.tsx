@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Image, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Image, Alert, Linking } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,7 +23,14 @@ export default function BlueprintsImageScreen() {
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission required", "Photo library access is needed to select a blueprint image.");
+      Alert.alert(
+        "Permission required",
+        "Photo library access is needed to select a blueprint image.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: () => Linking.openSettings() },
+        ]
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
