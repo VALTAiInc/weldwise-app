@@ -234,7 +234,7 @@ export default function TalkScreen() {
       setTtsStatus("loading");
 
       const tFetchStart = Date.now();
-      const res = await fetch(`${BRIDGE_API}/api/speak`, {
+      const res = await fetch(`${HR_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
