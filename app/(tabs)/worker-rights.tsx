@@ -15,6 +15,8 @@ import {
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system/legacy";
 import { Colors } from "../../constants/colors";
 import { HR_API } from "../../constants/api";
 const BG = Colors.background;
@@ -170,8 +172,87 @@ function ChatModal({
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ttsStatus, setTtsStatus] = useState<"idle" | "loading" | "playing">("idle");
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
   const didInit = useRef(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => {});
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
+  async function stopAnyTTS() {
+    try {
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    } catch {}
+    setTtsStatus("idle");
+    setPlayingMsgId(null);
+  }
+
+  async function playMsgTTS(msgId: string, text: string) {
+    if (playingMsgId === msgId && ttsStatus === "playing") {
+      await stopAnyTTS();
+      return;
+    }
+    await stopAnyTTS();
+    setPlayingMsgId(msgId);
+    setTtsStatus("loading");
+    try {
+      const res = await fetch(`${HR_API}/api/speak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voiceId: "OZ0L6eISlOejga3XjDFt" }),
+      });
+      if (!res.ok) throw new Error("speak " + res.status);
+      const arrayBuffer = await res.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(
+          null,
+          Array.from(bytes.subarray(i, i + chunkSize))
+        );
+      }
+      const audioBase64 = btoa(binary);
+      if (!audioBase64) throw new Error("no audio");
+
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: false,
+      });
+
+      const fileUri = (FileSystem.cacheDirectory ?? "") + "rights_tts.mp3";
+      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
+        encoding: "base64",
+      });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: fileUri },
+        { shouldPlay: true }
+      );
+      soundRef.current = sound;
+      setTtsStatus("playing");
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          stopAnyTTS();
+        }
+      });
+    } catch (error) {
+      console.error("SPEAK FAILED:", error);
+      setTtsStatus("idle");
+      setPlayingMsgId(null);
+    }
+  }
 
   useEffect(() => {
     if (didInit.current) return;
@@ -301,6 +382,33 @@ function ChatModal({
                 m.role === "user" ? styles.bubbleUser : styles.bubbleAi,
               ]}
             >
+              {m.role === "assistant" && (
+                <Pressable
+                  onPress={() => playMsgTTS(m.id, m.content)}
+                  style={styles.listenPill}
+                >
+                  {playingMsgId === m.id && ttsStatus === "loading" ? (
+                    <ActivityIndicator size="small" color={ORANGE} />
+                  ) : (
+                    <Ionicons
+                      name={
+                        playingMsgId === m.id && ttsStatus === "playing"
+                          ? "pause-circle"
+                          : "play-circle"
+                      }
+                      size={18}
+                      color={ORANGE}
+                    />
+                  )}
+                  <Text style={styles.listenPillText}>
+                    {playingMsgId === m.id && ttsStatus === "loading"
+                      ? "Loading..."
+                      : playingMsgId === m.id && ttsStatus === "playing"
+                        ? "Playing..."
+                        : "Listen"}
+                  </Text>
+                </Pressable>
+              )}
               <Text style={styles.bubbleText}>{m.content}</Text>
             </View>
           ))}
@@ -413,6 +521,24 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   bubbleText: { color: TEXT, fontSize: 15, lineHeight: 21 },
+  listenPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: 8,
+    backgroundColor: "rgba(254,119,37,0.15)",
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: ORANGE,
+  },
+  listenPillText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: ORANGE,
+    marginLeft: 6,
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
