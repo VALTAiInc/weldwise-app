@@ -20,9 +20,9 @@ import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import Colors from "../constants/colors";
 import { loadProfile, WorkerProfile } from "../constants/workerProfile";
+import { BRIDGE_API } from "../constants/api";
 
 const BACKGROUND = "#0A0A0F";
-const API_BASE = "https://bridge-backend-production-b481.up.railway.app";
 
 const QUESTIONS = [
   "What job site are you on today?",
@@ -117,7 +117,7 @@ export default function LockBoxScreen() {
       formData.append("audio", { uri, name: "recording.m4a", type: "audio/m4a" } as any);
       formData.append("language", "en");
 
-      const response = await fetch(`${API_BASE}/api/transcribe`, {
+      const response = await fetch(`${BRIDGE_API}/api/transcribe`, {
         method: "POST",
         body: formData,
         headers: { "Content-Type": "multipart/form-data" },

@@ -24,11 +24,10 @@ import * as Haptics from "expo-haptics";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import Colors from "../../constants/colors";
+import { BRIDGE_API } from "../../constants/api";
 
 const heroImage = require("../../assets/images/HEROIMAGE.jpg");
 const logoImage = require("../../assets/images/LOGOVALT.png");
-
-const API_BASE = process.env.EXPO_PUBLIC_BRIDGE_API || "https://bridge-backend-production-b481.up.railway.app";
 
 const LANGUAGES = [
   { code: "en", label: "English",   english: "English",    flag: "🇨🇦" },
@@ -304,7 +303,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
       formData.append("targetLanguage", theirLang);
       formData.append("callerApp", "WeldWise");
 
-      const response = await fetch(`${API_BASE}/api/translate`, {
+      const response = await fetch(`${BRIDGE_API}/api/translate`, {
         method: "POST",
         body: formData,
         headers: { "Content-Type": "multipart/form-data" },
@@ -356,7 +355,7 @@ function TranslatorModal({ visible, onClose }: { visible: boolean; onClose: () =
     speaker === "A" ? setATyped("") : setBTyped("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/translate-text`, {
+      const response = await fetch(`${BRIDGE_API}/api/translate-text`, {
         method: "POST",
         body: JSON.stringify({
           text: trimmed,

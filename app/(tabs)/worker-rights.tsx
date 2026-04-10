@@ -18,8 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import { Colors } from "../../constants/colors";
-
-const API_BASE = process.env.EXPO_PUBLIC_HR_API || "https://hr-backend-production-b462.up.railway.app";
+import { HR_API, BRIDGE_API } from "../../constants/api";
 const BG = Colors.background;
 const CARD = Colors.card;
 const ORANGE = Colors.primary;
@@ -189,7 +188,7 @@ function ChatModal({
 
   async function speak(text: string) {
     try {
-      const res = await fetch(`${API_BASE}/api/speak`, {
+      const res = await fetch(`${BRIDGE_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
@@ -276,7 +275,7 @@ function ChatModal({
           "Understood. I'll provide direct, confident answers about UA member rights and Canadian trades labour law.",
       },
     ];
-    const res = await fetch(`${API_BASE}/api/chat`, {
+    const res = await fetch(`${HR_API}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

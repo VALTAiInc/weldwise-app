@@ -22,12 +22,10 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Buffer } from "buffer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useKeepAwake } from "expo-keep-awake";
+import { HR_API, BRIDGE_API } from "../../constants/api";
 
 // Ensure Buffer exists (needed for base64 conversions on iOS/React Native)
 (globalThis as any).Buffer = (globalThis as any).Buffer || Buffer;
-
-// Prefer env override if you set it. Fallback to your current deployed Replit app.
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://weldwise-backend-gold-production.up.railway.app";
 
 // Mentor context for the chat API
 // Mentor context for the chat API
@@ -236,7 +234,7 @@ export default function TalkScreen() {
       setTtsStatus("loading");
 
       const tFetchStart = Date.now();
-      const res = await fetch(`${API_BASE}/api/speak`, {
+      const res = await fetch(`${BRIDGE_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
@@ -377,7 +375,7 @@ export default function TalkScreen() {
         ],
       };
 
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const res = await fetch(`${HR_API}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -411,7 +409,7 @@ export default function TalkScreen() {
     } catch (e: any) {
       addMessage(
         "assistant",
-        `I can't reach the server right now.\nCheck API_BASE and /api/health.\n\nAPI_BASE: ${API_BASE}\nError: ${String(
+        `I can't reach the server right now.\nCheck connection and /api/health.\n\nError: ${String(
           e?.message || e
         )}`
       );
@@ -490,7 +488,7 @@ export default function TalkScreen() {
         type: mime,
       } as any);
 
-      const transcriptRes = await fetch(`${API_BASE}/api/transcribe`, {
+      const transcriptRes = await fetch(`${BRIDGE_API}/api/transcribe`, {
         method: "POST",
         body: formData,
       });
@@ -517,7 +515,7 @@ export default function TalkScreen() {
     } catch (e: any) {
       addMessage(
         "assistant",
-        `I can't reach the server right now.\nCheck API_BASE and /api/health.\n\nAPI_BASE: ${API_BASE}\nError: ${String(
+        `I can't reach the server right now.\nCheck connection and /api/health.\n\nError: ${String(
           e?.message || e,
         )}`,
       );
