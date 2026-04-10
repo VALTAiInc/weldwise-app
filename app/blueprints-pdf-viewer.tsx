@@ -1,9 +1,10 @@
 // app/blueprints-pdf-viewer.tsx
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Linking, Alert, Share, Platform } from "react-native";
+import { View, Text, StyleSheet, Pressable, TouchableOpacity, Linking, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Sharing from "expo-sharing";
 import { Brand } from "../constants/colors";
 
 const ACCENT = Brand?.orange ?? "#fe7725";
@@ -16,13 +17,17 @@ export default function BlueprintsPdfViewerScreen() {
   const name = params?.name ? decodeURIComponent(String(params.name)) : "Selected PDF";
 
   const open = async () => {
+    console.log("[PDF] open called, uri:", uri, "platform:", Platform.OS);
     if (!uri) return;
-    console.log("[PDF] open pressed, uri:", uri);
     try {
-      // Local file:// URIs can't be opened via Linking on iOS — use Share sheet instead
       if (Platform.OS !== "web" && uri.startsWith("file://")) {
-        console.log("[PDF] using Share sheet for local file");
-        await Share.share({ url: uri, title: name });
+        const isAvailable = await Sharing.isAvailableAsync();
+        console.log("[PDF] sharing available:", isAvailable);
+        if (isAvailable) {
+          await Sharing.shareAsync(uri);
+        } else {
+          Alert.alert("Cannot share", "Sharing is not available on this device.");
+        }
       } else {
         const supported = await Linking.canOpenURL(uri);
         console.log("[PDF] canOpenURL:", supported);
@@ -34,7 +39,7 @@ export default function BlueprintsPdfViewerScreen() {
       }
     } catch (e: any) {
       console.error("[PDF] open error:", e);
-      Alert.alert("PDF open failed", e?.message || "We'll embed an in-app PDF viewer next.");
+      Alert.alert("PDF open failed", e?.message || "Could not open the PDF.");
     }
   };
 
@@ -58,10 +63,14 @@ export default function BlueprintsPdfViewerScreen() {
         </View>
         <Text style={styles.cardTitle}>Ready to open</Text>
 
-        <Pressable onPress={open} style={[styles.primaryBtn, { backgroundColor: ACCENT }]}>
-          <Ionicons name="open-outline" size={18} color="#111" />
-          <Text style={styles.primaryBtnText}>Open PDF</Text>
-        </Pressable>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={open}
+          style={styles.openButton}
+        >
+          <Ionicons name="open-outline" size={20} color="#fff" />
+          <Text style={styles.openButtonText}>Open PDF</Text>
+        </TouchableOpacity>
 
         <Text style={styles.uriText} numberOfLines={2}>
           {uri}
@@ -105,16 +114,17 @@ const styles = StyleSheet.create({
     borderColor: "rgba(254,119,37,0.20)",
   },
   cardTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
-  primaryBtn: {
+  openButton: {
     marginTop: 6,
     borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    backgroundColor: "#fe7725",
   },
-  primaryBtnText: { color: "#111", fontSize: 15, fontWeight: "800" },
+  openButtonText: { color: "#fff", fontSize: 15, fontWeight: "800" },
   uriText: { color: "rgba(255,255,255,0.45)", fontSize: 11, lineHeight: 16 },
 });

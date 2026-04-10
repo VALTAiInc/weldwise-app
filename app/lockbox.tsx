@@ -270,6 +270,13 @@ export default function LockBoxScreen() {
             return (
               <View key={i} style={styles.qaBlock}>
                 <View style={styles.botBubble}>
+                  <Pressable
+                    onPress={() => speakText(q)}
+                    style={styles.listenPill}
+                  >
+                    <Ionicons name="play-circle" size={18} color={Colors.primary} />
+                    <Text style={styles.listenPillText}>Listen</Text>
+                  </Pressable>
                   <Text style={styles.botBubbleText}>{q}</Text>
                 </View>
                 {answers[i] ? (
@@ -434,6 +441,24 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.06)",
   },
   botBubbleText: { color: "#fff", fontSize: 15, lineHeight: 21 },
+  listenPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: 8,
+    backgroundColor: "rgba(254,119,37,0.15)",
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  listenPillText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: Colors.primary,
+    marginLeft: 6,
+  },
   userBubble: {
     alignSelf: "flex-end",
     backgroundColor: Colors.primary,
