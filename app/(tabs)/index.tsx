@@ -28,7 +28,7 @@ import Colors from "../../constants/colors";
 const heroImage = require("../../assets/images/HEROIMAGE.jpg");
 const logoImage = require("../../assets/images/LOGOVALT.png");
 
-const API_BASE = "https://bridge-backend-production-b481.up.railway.app";
+const API_BASE = process.env.EXPO_PUBLIC_BRIDGE_API || "https://bridge-backend-production-b481.up.railway.app";
 
 const LANGUAGES = [
   { code: "en", label: "English",   english: "English",    flag: "🇨🇦" },

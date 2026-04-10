@@ -19,7 +19,7 @@ import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import { Colors } from "../../constants/colors";
 
-const API_BASE = "https://hr-backend-production-b462.up.railway.app";
+const API_BASE = process.env.EXPO_PUBLIC_HR_API || "https://hr-backend-production-b462.up.railway.app";
 const BG = Colors.background;
 const CARD = Colors.card;
 const ORANGE = Colors.primary;

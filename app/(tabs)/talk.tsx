@@ -27,9 +27,7 @@ import { useKeepAwake } from "expo-keep-awake";
 (globalThis as any).Buffer = (globalThis as any).Buffer || Buffer;
 
 // Prefer env override if you set it. Fallback to your current deployed Replit app.
-const API_BASE =
-  (process.env.EXPO_PUBLIC_API_BASE as string) ||
-"https://weldwise-backend-gold-production.up.railway.app";
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://weldwise-backend-gold-production.up.railway.app";
 
 // Mentor context for the chat API
 // Mentor context for the chat API
