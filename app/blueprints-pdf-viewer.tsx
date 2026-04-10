@@ -1,6 +1,6 @@
 // app/blueprints-pdf-viewer.tsx
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Linking, Alert } from "react-native";
+import { View, Text, StyleSheet, Pressable, Linking, Alert, Share, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,11 +17,24 @@ export default function BlueprintsPdfViewerScreen() {
 
   const open = async () => {
     if (!uri) return;
+    console.log("[PDF] open pressed, uri:", uri);
     try {
-      // Line 20: open with OS
-      await Linking.openURL(uri);
-    } catch (e) {
-      Alert.alert("PDF open failed", "We'll embed an in-app PDF viewer next.");
+      // Local file:// URIs can't be opened via Linking on iOS — use Share sheet instead
+      if (Platform.OS !== "web" && uri.startsWith("file://")) {
+        console.log("[PDF] using Share sheet for local file");
+        await Share.share({ url: uri, title: name });
+      } else {
+        const supported = await Linking.canOpenURL(uri);
+        console.log("[PDF] canOpenURL:", supported);
+        if (supported) {
+          await Linking.openURL(uri);
+        } else {
+          Alert.alert("Cannot open PDF", "No app is available to open this file.");
+        }
+      }
+    } catch (e: any) {
+      console.error("[PDF] open error:", e);
+      Alert.alert("PDF open failed", e?.message || "We'll embed an in-app PDF viewer next.");
     }
   };
 
