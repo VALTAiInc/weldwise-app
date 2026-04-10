@@ -482,7 +482,7 @@ export default function TalkScreen() {
       const formData = new FormData();
       const filename = uri.split("/").pop() || "recording.m4a";
 
-      formData.append("file", {
+      formData.append("audio", {
         uri,
         name: filename,
         type: mime,
