@@ -693,7 +693,6 @@ export default function TalkScreen() {
                     : styles.bubbleUser,
                 ]}
               >
-                <Text style={styles.bubbleText}>{m.content}</Text>
                 {m.role === "assistant" && (
                   <Pressable
                     onPress={() => playMsgTTS(m.id, m.content)}
@@ -721,6 +720,7 @@ export default function TalkScreen() {
                     </Text>
                   </Pressable>
                 )}
+                <Text style={styles.bubbleText}>{m.content}</Text>
               </View>
             ))}
 

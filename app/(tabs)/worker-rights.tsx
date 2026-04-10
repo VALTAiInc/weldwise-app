@@ -15,10 +15,8 @@ import {
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system/legacy";
 import { Colors } from "../../constants/colors";
-import { HR_API, BRIDGE_API } from "../../constants/api";
+import { HR_API } from "../../constants/api";
 const BG = Colors.background;
 const CARD = Colors.card;
 const ORANGE = Colors.primary;
@@ -172,89 +170,8 @@ function ChatModal({
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
   const didInit = useRef(false);
-  const soundRef = useRef<Audio.Sound | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
-    };
-  }, []);
-
-  async function speak(text: string) {
-    try {
-      const res = await fetch(`${HR_API}/api/speak`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voiceId: "OZ0L6eISlOejga3XjDFt" }),
-      });
-      console.log("speak response ok:", res.ok, res.status);
-      if (!res.ok) throw new Error("speak " + res.status);
-      const arrayBuffer = await res.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      const chunkSize = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode.apply(
-          null,
-          Array.from(bytes.subarray(i, i + chunkSize))
-        );
-      }
-      const audioBase64 = btoa(binary);
-      console.log("audioBase64 length:", audioBase64.length);
-      if (!audioBase64) throw new Error("no audio");
-
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        allowsRecordingIOS: false,
-      });
-
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-
-      const fileUri = (FileSystem.cacheDirectory ?? "") + "rights_tts.mp3";
-      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
-        encoding: "base64",
-      });
-      console.log("file written to:", fileUri);
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: fileUri },
-        { shouldPlay: true }
-      );
-      console.log("sound created, playing");
-      soundRef.current = sound;
-      setSpeaking(true);
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setSpeaking(false);
-        }
-      });
-    } catch (error) {
-      console.error("SPEAK FAILED:", error);
-      setSpeaking(false);
-    }
-  }
-
-  async function stopSpeaking() {
-    if (!soundRef.current) {
-      setSpeaking(false);
-      return;
-    }
-    try {
-      await soundRef.current.stopAsync();
-      await soundRef.current.unloadAsync();
-    } catch {}
-    soundRef.current = null;
-    setSpeaking(false);
-  }
 
   useEffect(() => {
     if (didInit.current) return;
@@ -300,7 +217,6 @@ function ChatModal({
         ...prev,
         { id: uid(), role: "assistant", content: reply },
       ]);
-      void speak(reply);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -336,7 +252,6 @@ function ChatModal({
         ...prev,
         { id: uid(), role: "assistant", content: reply },
       ]);
-      void speak(reply);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -396,15 +311,6 @@ function ChatModal({
           )}
         </ScrollView>
 
-        {speaking && (
-          <View style={styles.stopBarWrap} pointerEvents="box-none">
-            <Pressable onPress={stopSpeaking} style={styles.stopPill}>
-              <Ionicons name="pause-circle" size={20} color="#fff" />
-              <Text style={styles.stopPillText}>Tap to stop audio</Text>
-            </Pressable>
-          </View>
-        )}
-
         <View
           style={[
             styles.inputRow,
@@ -450,24 +356,6 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: "center",
     justifyContent: "center",
-  },
-  stopBarWrap: {
-    alignItems: "center",
-    paddingBottom: 8,
-  },
-  stopPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: ORANGE,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    gap: 8,
-  },
-  stopPillText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
   },
   title: {
     color: TEXT,
