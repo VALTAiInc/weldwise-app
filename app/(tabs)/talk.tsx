@@ -64,6 +64,8 @@ How to answer:
 
 Length:
 - Keep responses concise, practical, and jobsite-ready.
+
+Adapt your response length to the question. For simple greetings or yes/no questions, respond in 1-2 sentences. For technical questions about welding procedures, safety, or troubleshooting, provide a thorough detailed answer. Never pad short answers with unnecessary information.
 `.trim();
 
 type Role = "user" | "assistant";
@@ -474,7 +476,6 @@ export default function TalkScreen() {
       await rec.stopAndUnloadAsync();
       const uri = rec.getURI();
       if (!uri) return;
-      console.log("[TRANSCRIBE] uri:", uri, "size check");
 
       setIsProcessing(true);
 
@@ -488,13 +489,11 @@ export default function TalkScreen() {
         name: filename,
         type: mime,
       } as any);
-      console.log("[TRANSCRIBE] sending to:", BRIDGE_API + "/api/transcribe");
 
       const transcriptRes = await fetch(`${BRIDGE_API}/api/transcribe`, {
         method: "POST",
         body: formData,
       });
-      console.log("[TRANSCRIBE] status:", transcriptRes.status);
 
       if (!transcriptRes.ok) {
         const body = await safeJson(transcriptRes);
@@ -516,7 +515,6 @@ export default function TalkScreen() {
 
       await sendTextMessage(cleaned);
     } catch (e: any) {
-      console.error("[TRANSCRIBE] error:", e);
       addMessage(
         "assistant",
         `I can't reach the server right now.\nCheck connection and /api/health.\n\nError: ${String(
