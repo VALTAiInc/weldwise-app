@@ -503,6 +503,7 @@ export default function TalkScreen() {
       }
 
       const transcriptData = await transcriptRes.json();
+      console.log("[MIC] transcript raw:", JSON.stringify(transcriptData));
       const cleaned = (transcriptData?.text || "").trim();
 
       if (!cleaned) {

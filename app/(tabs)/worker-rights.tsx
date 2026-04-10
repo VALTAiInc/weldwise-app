@@ -188,10 +188,10 @@ function ChatModal({
 
   async function speak(text: string) {
     try {
-      const res = await fetch(`${BRIDGE_API}/api/speak`, {
+      const res = await fetch(`${HR_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, voiceId: "OZ0L6eISlOejga3XjDFt" }),
       });
       console.log("speak response ok:", res.ok, res.status);
       if (!res.ok) throw new Error("speak " + res.status);
