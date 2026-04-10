@@ -697,22 +697,28 @@ export default function TalkScreen() {
                 {m.role === "assistant" && (
                   <Pressable
                     onPress={() => playMsgTTS(m.id, m.content)}
-                    style={styles.bubbleSpeakerBtn}
-                    hitSlop={8}
+                    style={styles.listenPill}
                   >
-                    <Ionicons
-                      name={
-                        playingMsgId === m.id && ttsStatus === "playing"
-                          ? "pause-circle"
-                          : "volume-high-outline"
-                      }
-                      size={16}
-                      color={
-                        playingMsgId === m.id && ttsStatus === "playing"
-                          ? "#E07A1F"
-                          : "rgba(255,255,255,0.4)"
-                      }
-                    />
+                    {playingMsgId === m.id && ttsStatus === "loading" ? (
+                      <ActivityIndicator size="small" color="#E07A1F" />
+                    ) : (
+                      <Ionicons
+                        name={
+                          playingMsgId === m.id && ttsStatus === "playing"
+                            ? "pause-circle"
+                            : "play-circle"
+                        }
+                        size={18}
+                        color="#E07A1F"
+                      />
+                    )}
+                    <Text style={styles.listenPillText}>
+                      {playingMsgId === m.id && ttsStatus === "loading"
+                        ? "Loading..."
+                        : playingMsgId === m.id && ttsStatus === "playing"
+                          ? "Playing..."
+                          : "Listen"}
+                    </Text>
                   </Pressable>
                 )}
               </View>
@@ -832,10 +838,23 @@ const styles = StyleSheet.create({
   bubbleAssistant: { backgroundColor: "#1B1E25", alignSelf: "flex-start" },
   bubbleUser: { backgroundColor: "#2B313D", alignSelf: "flex-end" },
   bubbleText: { color: "#FFFFFF", fontSize: 18, lineHeight: 24 },
-  bubbleSpeakerBtn: {
-    alignSelf: "flex-end",
-    marginTop: 6,
-    padding: 2,
+  listenPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginTop: 8,
+    backgroundColor: "rgba(254,119,37,0.15)",
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "#E07A1F",
+  },
+  listenPillText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#E07A1F",
+    marginLeft: 6,
   },
 
   inputBar: {
