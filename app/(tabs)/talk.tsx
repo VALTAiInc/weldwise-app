@@ -122,6 +122,7 @@ export default function TalkScreen() {
   const [ttsStatus, setTtsStatus] = useState<
     "idle" | "loading" | "playing" | "paused"
   >("idle");
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
 
@@ -224,6 +225,20 @@ export default function TalkScreen() {
     }
 
     setTtsStatus("idle");
+    setPlayingMsgId(null);
+  }
+
+  async function playMsgTTS(msgId: string, text: string) {
+    if (playingMsgId === msgId && ttsStatus === "playing") {
+      await pauseTTS();
+      return;
+    }
+    if (playingMsgId === msgId && ttsStatus === "paused") {
+      await resumeTTS();
+      return;
+    }
+    setPlayingMsgId(msgId);
+    await playTTS(text);
   }
 
   async function playTTS(text: string) {
@@ -392,22 +407,6 @@ export default function TalkScreen() {
       const reply = (data?.content || "").trim() || "No response.";
       addMessage("assistant", reply);
 
-        // TTS: speak first chunk, once per reply
-      const ttsText = reply.replace(/\s+/g, " ").trim().slice(0, 500);
-
-        if (ttsText) {
-          const now = Date.now();
-          const prev = lastTtsRef.current;
-
-          // Skip only if it's the same text and we fired very recently (prevents double-trigger)
-          if (prev && prev.text === ttsText && now - prev.ts < 1200) {
-            console.log("[TTS] skipped duplicate call");
-          } else {
-            lastTtsRef.current = { text: ttsText, ts: now };
-            playTTS(ttsText);
-          }
-        }
-      
     } catch (e: any) {
       addMessage(
         "assistant",
@@ -695,6 +694,27 @@ export default function TalkScreen() {
                 ]}
               >
                 <Text style={styles.bubbleText}>{m.content}</Text>
+                {m.role === "assistant" && (
+                  <Pressable
+                    onPress={() => playMsgTTS(m.id, m.content)}
+                    style={styles.bubbleSpeakerBtn}
+                    hitSlop={8}
+                  >
+                    <Ionicons
+                      name={
+                        playingMsgId === m.id && ttsStatus === "playing"
+                          ? "pause-circle"
+                          : "volume-high-outline"
+                      }
+                      size={16}
+                      color={
+                        playingMsgId === m.id && ttsStatus === "playing"
+                          ? "#E07A1F"
+                          : "rgba(255,255,255,0.4)"
+                      }
+                    />
+                  </Pressable>
+                )}
               </View>
             ))}
 
@@ -812,6 +832,11 @@ const styles = StyleSheet.create({
   bubbleAssistant: { backgroundColor: "#1B1E25", alignSelf: "flex-start" },
   bubbleUser: { backgroundColor: "#2B313D", alignSelf: "flex-end" },
   bubbleText: { color: "#FFFFFF", fontSize: 18, lineHeight: 24 },
+  bubbleSpeakerBtn: {
+    alignSelf: "flex-end",
+    marginTop: 6,
+    padding: 2,
+  },
 
   inputBar: {
     flexDirection: "row",
