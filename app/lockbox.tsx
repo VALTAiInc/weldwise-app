@@ -119,12 +119,6 @@ export default function LockBoxScreen() {
     }
   }
 
-  // Auto-speak each question when it appears
-  useEffect(() => {
-    if (currentIndex < QUESTIONS.length) {
-      speakText(QUESTIONS[currentIndex]);
-    }
-  }, [currentIndex]);
 
   const allAnswered = currentIndex >= QUESTIONS.length;
 

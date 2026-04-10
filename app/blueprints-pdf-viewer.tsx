@@ -10,8 +10,9 @@ import { Brand } from "../constants/colors";
 const ACCENT = Brand?.orange ?? "#fe7725";
 
 export default function BlueprintsPdfViewerScreen() {
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ uri?: string; name?: string }>();
+  console.log("[PDF] params:", JSON.stringify(params));
+  const insets = useSafeAreaInsets();
 
   const uri = params?.uri ? decodeURIComponent(String(params.uri)) : "";
   const name = params?.name ? decodeURIComponent(String(params.name)) : "Selected PDF";

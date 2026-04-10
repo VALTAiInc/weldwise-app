@@ -254,7 +254,7 @@ export default function TalkScreen() {
       const res = await fetch(`${HR_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voiceId: "fVVjLtJgnQI61CoImgHU" }),
+        body: JSON.stringify({ text, voiceId: "v32airczvHKOKNkTzmTI" }),
       });
       console.log("[TTS] fetch done ms:", Date.now() - tFetchStart, "status:", res.status);
 
