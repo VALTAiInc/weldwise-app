@@ -237,7 +237,7 @@ export default function TalkScreen() {
       const res = await fetch(`${HR_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, voiceId: "65dhNaIr3Y4ovumVtdy0" }),
       });
       console.log("[TTS] fetch done ms:", Date.now() - tFetchStart, "status:", res.status);
 
@@ -474,6 +474,7 @@ export default function TalkScreen() {
       await rec.stopAndUnloadAsync();
       const uri = rec.getURI();
       if (!uri) return;
+      console.log("[TRANSCRIBE] uri:", uri, "size check");
 
       setIsProcessing(true);
 
@@ -487,11 +488,13 @@ export default function TalkScreen() {
         name: filename,
         type: mime,
       } as any);
+      console.log("[TRANSCRIBE] sending to:", BRIDGE_API + "/api/transcribe");
 
       const transcriptRes = await fetch(`${BRIDGE_API}/api/transcribe`, {
         method: "POST",
         body: formData,
       });
+      console.log("[TRANSCRIBE] status:", transcriptRes.status);
 
       if (!transcriptRes.ok) {
         const body = await safeJson(transcriptRes);
@@ -513,6 +516,7 @@ export default function TalkScreen() {
 
       await sendTextMessage(cleaned);
     } catch (e: any) {
+      console.error("[TRANSCRIBE] error:", e);
       addMessage(
         "assistant",
         `I can't reach the server right now.\nCheck connection and /api/health.\n\nError: ${String(
