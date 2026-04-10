@@ -20,7 +20,8 @@ import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import Colors from "../constants/colors";
 import { loadProfile, WorkerProfile } from "../constants/workerProfile";
-import { BRIDGE_API } from "../constants/api";
+import * as FileSystem from "expo-file-system/legacy";
+import { BRIDGE_API, HR_API } from "../constants/api";
 
 const BACKGROUND = "#0A0A0F";
 
@@ -58,10 +59,72 @@ export default function LockBoxScreen() {
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     loadProfile().then(setProfile).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => {});
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
+  async function speakText(text: string) {
+    try {
+      if (soundRef.current) {
+        await soundRef.current.stopAsync().catch(() => {});
+        await soundRef.current.unloadAsync().catch(() => {});
+        soundRef.current = null;
+      }
+      const res = await fetch(`${HR_API}/api/speak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voiceId: "65dhNaIr3Y4ovumVtdy0" }),
+      });
+      if (!res.ok) throw new Error("speak " + res.status);
+      const arrayBuffer = await res.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(
+          null,
+          Array.from(bytes.subarray(i, i + chunkSize))
+        );
+      }
+      const audioBase64 = btoa(binary);
+      if (!audioBase64) throw new Error("no audio");
+
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: false,
+      });
+
+      const fileUri = (FileSystem.cacheDirectory ?? "") + "lockbox_tts.mp3";
+      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
+        encoding: "base64",
+      });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: fileUri },
+        { shouldPlay: true }
+      );
+      soundRef.current = sound;
+    } catch (error) {
+      console.error("[LOCKBOX TTS] error:", error);
+    }
+  }
+
+  // Auto-speak each question when it appears
+  useEffect(() => {
+    if (currentIndex < QUESTIONS.length) {
+      speakText(QUESTIONS[currentIndex]);
+    }
+  }, [currentIndex]);
 
   const allAnswered = currentIndex >= QUESTIONS.length;
 
