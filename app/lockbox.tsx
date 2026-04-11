@@ -372,7 +372,7 @@ export default function LockBoxScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
+      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss} pointerEvents="box-none">
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color="#fff" />
@@ -384,7 +384,7 @@ export default function LockBoxScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <ScrollView
           ref={scrollRef}

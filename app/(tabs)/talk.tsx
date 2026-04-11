@@ -688,11 +688,11 @@ export default function TalkScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
+      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss} pointerEvents="box-none">
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <View style={[styles.container, { paddingTop: 18 }]}>
           {showDisclaimer && (
