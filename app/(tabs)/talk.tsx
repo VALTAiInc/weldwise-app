@@ -22,7 +22,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Buffer } from "buffer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useKeepAwake } from "expo-keep-awake";
-import { HR_API, BRIDGE_API } from "../../constants/api";
+import { WELDWISE_API } from "../../constants/api";
 
 // Ensure Buffer exists (needed for base64 conversions on iOS/React Native)
 (globalThis as any).Buffer = (globalThis as any).Buffer || Buffer;
@@ -252,7 +252,7 @@ export default function TalkScreen() {
       setTtsStatus("loading");
 
       const tFetchStart = Date.now();
-      const res = await fetch(`${HR_API}/api/speak`, {
+      const res = await fetch(`${WELDWISE_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, voiceId: "v32airczvHKOKNkTzmTI" }),
@@ -413,7 +413,7 @@ export default function TalkScreen() {
           ],
         };
 
-        const res = await fetch(`${HR_API}/api/chat`, {
+        const res = await fetch(`${WELDWISE_API}/api/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -458,7 +458,7 @@ export default function TalkScreen() {
         ],
       };
 
-      const res = await fetch(`${HR_API}/api/chat`, {
+      const res = await fetch(`${WELDWISE_API}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -555,7 +555,7 @@ export default function TalkScreen() {
         type: mime,
       } as any);
 
-      const transcriptRes = await fetch(`${BRIDGE_API}/api/transcribe`, {
+      const transcriptRes = await fetch(`${WELDWISE_API}/api/transcribe`, {
         method: "POST",
         body: formData,
       });

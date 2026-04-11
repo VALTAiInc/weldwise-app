@@ -21,7 +21,7 @@ import * as Haptics from "expo-haptics";
 import Colors from "../constants/colors";
 import { loadProfile, WorkerProfile } from "../constants/workerProfile";
 import * as FileSystem from "expo-file-system/legacy";
-import { BRIDGE_API, HR_API } from "../constants/api";
+import { WELDWISE_API } from "../constants/api";
 
 const BG = "#0A0A0F";
 
@@ -159,9 +159,16 @@ export default function LockBoxScreen() {
           { role: "system", content: sys },
           ...history.map((m) => ({ role: m.role, content: m.content })),
         ],
+        profile: profile ? {
+          name: profile.name,
+          trade: profile.trade,
+          certificationLevel: profile.certificationLevel,
+          employer: profile.employer,
+          unionLocal: profile.unionLocal,
+        } : undefined,
       };
 
-      const res = await fetch(`${HR_API}/api/chat`, {
+      const res = await fetch(`${WELDWISE_API}/api/lockbox`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -214,7 +221,7 @@ export default function LockBoxScreen() {
     setPlayingMsgId(msgId);
     setTtsStatus("loading");
     try {
-      const res = await fetch(`${HR_API}/api/speak`, {
+      const res = await fetch(`${WELDWISE_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, voiceId: "65dhNaIr3Y4ovumVtdy0" }),
@@ -300,7 +307,7 @@ export default function LockBoxScreen() {
       formData.append("audio", { uri, name: filename, type: mime } as any);
       formData.append("language", "en");
 
-      const response = await fetch(`${BRIDGE_API}/api/transcribe`, {
+      const response = await fetch(`${WELDWISE_API}/api/transcribe`, {
         method: "POST",
         body: formData,
         headers: { "Content-Type": "multipart/form-data" },
