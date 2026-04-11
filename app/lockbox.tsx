@@ -26,10 +26,10 @@ import { BRIDGE_API, HR_API } from "../constants/api";
 const BACKGROUND = "#0A0A0F";
 
 const QUESTIONS = [
-  "What job site are you on today?",
-  "What work are you performing this shift?",
-  "What materials or equipment are you working with?",
-  "Anything unusual or out of the ordinary on site today?",
+  "Hey! Which job site are you headed to today? 👷",
+  "Nice! What kind of work are you tackling this shift?",
+  "What materials or equipment are you working with today?",
+  "Anything out of the ordinary on site we should know about?",
 ];
 
 function formatToday() {

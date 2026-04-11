@@ -34,6 +34,7 @@ const LANGUAGES = [
   { code: "es", label: "Español",   english: "Spanish",    flag: "🇲🇽" },
   { code: "fr", label: "Français",  english: "French",     flag: "🇫🇷" },
   { code: "de", label: "Deutsch",   english: "German",     flag: "🇩🇪" },
+  { code: "no", label: "Norsk",     english: "Norwegian",  flag: "🇳🇴" },
   { code: "pt", label: "Português", english: "Portuguese", flag: "🇧🇷" },
   { code: "zh", label: "中文",       english: "Chinese",    flag: "🇨🇳" },
   { code: "ja", label: "日本語",      english: "Japanese",   flag: "🇯🇵" },

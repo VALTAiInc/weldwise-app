@@ -13,6 +13,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import * as Sharing from "expo-sharing";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand } from "../constants/colors";
 
@@ -25,19 +26,27 @@ type PickedPdf = {
 };
 
 async function openPdfWithSystem(uri: string) {
-  // Line 28: use OS open for file://
+  console.log("[PDF-PACK] opening uri:", uri);
   try {
-    const can = await Linking.canOpenURL(uri);
-    if (!can) {
-      Alert.alert("Can't open this PDF", "Your device says it can't open this link.");
-      return;
+    if (uri.startsWith("file://")) {
+      const isAvailable = await Sharing.isAvailableAsync();
+      console.log("[PDF-PACK] sharing available:", isAvailable);
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, { mimeType: "application/pdf" });
+      } else {
+        Alert.alert("Cannot open PDF", "Sharing is not available on this device.");
+      }
+    } else {
+      const can = await Linking.canOpenURL(uri);
+      if (!can) {
+        Alert.alert("Can't open this PDF", "Your device says it can't open this link.");
+        return;
+      }
+      await Linking.openURL(uri);
     }
-    await Linking.openURL(uri);
   } catch (e: any) {
-    Alert.alert(
-      "PDF open failed",
-      "We'll embed an in-app viewer next. For now, the system viewer should open this PDF."
-    );
+    console.error("[PDF-PACK] open error:", e);
+    Alert.alert("PDF open failed", e?.message || "Could not open the PDF.");
   }
 }
 
