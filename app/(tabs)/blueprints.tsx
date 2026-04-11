@@ -7,6 +7,7 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Linking,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -199,6 +200,40 @@ export default function BlueprintsScreen() {
             <Ionicons name="chevron-forward" size={18} color="#5a5a5a" />
           </Pressable>
         </View>
+
+        <Text style={[styles.sectionTitle, { marginTop: 22 }]}>Reference Manuals</Text>
+
+        <View style={styles.pinned}>
+          <Pressable
+            onPress={() => Linking.openURL("https://www.millerwelds.com/files/owners-manuals/o257798c_mil.pdf")}
+            style={({ pressed }) => [styles.pinnedRow, pressed && styles.rowPressed]}
+          >
+            <View style={styles.iconCircle}>
+              <Ionicons name="book-outline" size={20} color={ACCENT} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pinnedTitle}>Continuum 350 & 500 Manual</Text>
+              <Text style={styles.pinnedSub}>Original owner's manual with diagrams</Text>
+              <Text style={styles.browserLabel}>Opens in browser</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color="#5a5a5a" />
+          </Pressable>
+
+          <Pressable
+            onPress={() => Linking.openURL("https://www.millerwelds.com/files/owners-manuals/O277115F_MIL.pdf")}
+            style={({ pressed }) => [styles.pinnedRow, pressed && styles.rowPressed]}
+          >
+            <View style={styles.iconCircle}>
+              <Ionicons name="book-outline" size={20} color={ACCENT} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pinnedTitle}>Auto-Continuum 350 & 500 Manual</Text>
+              <Text style={styles.pinnedSub}>w/ Insight Core — updated 2019</Text>
+              <Text style={styles.browserLabel}>Opens in browser</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color="#5a5a5a" />
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
@@ -314,5 +349,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Brand.textSecondary ?? "rgba(255,255,255,0.65)",
     marginTop: 2,
+  },
+  browserLabel: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.35)",
+    marginTop: 3,
   },
 });

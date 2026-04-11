@@ -274,9 +274,28 @@ export default function LockBoxScreen() {
                   <Text style={styles.botBubbleText}>{q}</Text>
                 </View>
                 {answers[i] ? (
-                  <View style={styles.userBubble}>
+                  <Pressable
+                    onPress={() => {
+                      if (i === currentIndex - 1 && !showReport) {
+                        setCurrentIndex(i);
+                        setDraft(answers[i]);
+                        setAnswers((prev) => {
+                          const next = [...prev];
+                          next[i] = "";
+                          return next;
+                        });
+                      }
+                    }}
+                    style={styles.userBubble}
+                  >
                     <Text style={styles.userBubbleText}>{answers[i]}</Text>
-                  </View>
+                    {i === currentIndex - 1 && !showReport && (
+                      <View style={styles.editHint}>
+                        <Ionicons name="pencil" size={11} color="rgba(255,255,255,0.5)" />
+                        <Text style={styles.editHintText}>Edit</Text>
+                      </View>
+                    )}
+                  </Pressable>
                 ) : null}
               </View>
             );
@@ -464,6 +483,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   userBubbleText: { color: "#fff", fontSize: 15, lineHeight: 21, fontWeight: "600" },
+  editHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    marginTop: 4,
+    gap: 4,
+  },
+  editHintText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.5)",
+  },
   inputBar: {
     paddingHorizontal: 14,
     paddingTop: 10,

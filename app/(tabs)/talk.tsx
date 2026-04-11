@@ -115,6 +115,7 @@ export default function TalkScreen() {
   ]);
 
   const [input, setInput] = useState("");
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [micPermissionOk, setMicPermissionOk] = useState<boolean | null>(null);
@@ -373,6 +374,71 @@ export default function TalkScreen() {
     } catch {
       // ignore
     }
+  }
+
+  function startEdit(msgId: string) {
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg || msg.role !== "user") return;
+    setEditingMsgId(msgId);
+    setInput(msg.content);
+  }
+
+  function cancelEdit() {
+    setEditingMsgId(null);
+    setInput("");
+  }
+
+  async function handleSend() {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+
+    if (editingMsgId) {
+      const idx = messages.findIndex((m) => m.id === editingMsgId);
+      if (idx === -1) return;
+      const prior = messages.slice(0, idx);
+      setMessages(prior);
+      setEditingMsgId(null);
+      setInput("");
+      setIsProcessing(true);
+
+      const userMsg: Msg = { id: uid(), role: "user", content: trimmed, ts: Date.now() };
+      setMessages((prev) => [...prev, userMsg]);
+
+      try {
+        const payload = {
+          messages: [
+            { role: "system", content: MANUAL_CONTEXT },
+            ...prior.map((m) => ({ role: m.role, content: m.content })),
+            { role: "user", content: trimmed },
+          ],
+        };
+
+        const res = await fetch(`${HR_API}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const body = await safeJson(res);
+          throw new Error(`chat ${res.status}: ${JSON.stringify(body)}`);
+        }
+
+        const data = (await res.json()) as { content?: string };
+        const reply = (data?.content || "").trim() || "No response.";
+        addMessage("assistant", reply);
+      } catch (e: any) {
+        addMessage(
+          "assistant",
+          `I can't reach the server right now.\nError: ${String(e?.message || e)}`
+        );
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    await sendTextMessage(trimmed);
   }
 
   async function sendTextMessage(text: string) {
@@ -684,8 +750,9 @@ export default function TalkScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {messages.map((m) => (
-              <View
+              <Pressable
                 key={m.id}
+                onPress={m.role === "user" ? () => startEdit(m.id) : undefined}
                 style={[
                   styles.bubble,
                   m.role === "assistant"
@@ -721,7 +788,13 @@ export default function TalkScreen() {
                   </Pressable>
                 )}
                 <Text style={styles.bubbleText}>{m.content}</Text>
-              </View>
+                {m.role === "user" && (
+                  <View style={styles.editHint}>
+                    <Ionicons name="pencil" size={12} color="rgba(255,255,255,0.35)" />
+                    <Text style={styles.editHintText}>Edit</Text>
+                  </View>
+                )}
+              </Pressable>
             ))}
 
             {isProcessing && (
@@ -769,22 +842,32 @@ export default function TalkScreen() {
               </Pressable>
             </View>
 
-            <TextInput
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask your mentor..."
-              placeholderTextColor="#8B8F98"
-              style={styles.textInput}
-              editable={!isProcessing}
-              multiline
-            />
+            <View style={{ flex: 1 }}>
+              {editingMsgId && (
+                <View style={styles.editingBar}>
+                  <Text style={styles.editingBarText}>Editing...</Text>
+                  <Pressable onPress={cancelEdit} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+                  </Pressable>
+                </View>
+              )}
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                placeholder="Ask your mentor..."
+                placeholderTextColor="#8B8F98"
+                style={[styles.textInput, editingMsgId ? styles.textInputEditing : null]}
+                editable={!isProcessing}
+                multiline
+              />
+            </View>
 
             <Pressable
-              onPress={() => sendTextMessage(input)}
+              onPress={handleSend}
               style={[styles.sendBtn, isProcessing ? styles.btnDisabled : null]}
               disabled={isProcessing}
             >
-              <Text style={styles.sendText}>Send</Text>
+              <Text style={styles.sendText}>{editingMsgId ? "Resend" : "Send"}</Text>
             </Pressable>
           </View>
         </View>
@@ -837,6 +920,17 @@ const styles = StyleSheet.create({
   },
   bubbleAssistant: { backgroundColor: "#1B1E25", alignSelf: "flex-start" },
   bubbleUser: { backgroundColor: "#2B313D", alignSelf: "flex-end" },
+  editHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    marginTop: 4,
+    gap: 4,
+  },
+  editHintText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.35)",
+  },
   bubbleText: { color: "#FFFFFF", fontSize: 18, lineHeight: 24 },
   listenPill: {
     flexDirection: "row",
@@ -905,6 +999,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 
+  editingBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: "rgba(224,122,31,0.15)",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  editingBarText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#E07A1F",
+  },
+  textInputEditing: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
   sendBtn: {
     height: 48,
     paddingHorizontal: 18,
