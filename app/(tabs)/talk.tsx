@@ -407,7 +407,6 @@ export default function TalkScreen() {
       try {
         const payload = {
           messages: [
-            { role: "system", content: MANUAL_CONTEXT },
             ...prior.map((m) => ({ role: m.role, content: m.content })),
             { role: "user", content: trimmed },
           ],
@@ -452,7 +451,6 @@ export default function TalkScreen() {
     try {
       const payload = {
         messages: [
-          { role: "system", content: MANUAL_CONTEXT },
           ...messages.map((m) => ({ role: m.role, content: m.content })),
           { role: "user", content: trimmed },
         ],

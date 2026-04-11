@@ -106,6 +106,7 @@ export default function LockBoxScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [ttsStatus, setTtsStatus] = useState<"idle" | "loading" | "playing">("idle");
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
 
   const systemPromptRef = useRef<string>("");
   const didInitRef = useRef(false);
@@ -185,9 +186,28 @@ export default function LockBoxScreen() {
     }
   }
 
+  function cancelEdit() {
+    setEditingMsgId(null);
+    setInput("");
+  }
+
   async function handleSend() {
     const trimmed = input.trim();
     if (!trimmed || isProcessing) return;
+
+    if (editingMsgId) {
+      const idx = messages.findIndex((m) => m.id === editingMsgId);
+      if (idx === -1) return;
+      const prior = messages.slice(0, idx);
+      const userMsg: Msg = { id: uid(), role: "user", content: trimmed };
+      const updated = [...prior, userMsg];
+      setMessages(updated);
+      setEditingMsgId(null);
+      setInput("");
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+      await sendToChat(updated);
+      return;
+    }
 
     const userMsg: Msg = { id: uid(), role: "user", content: trimmed };
     const updated = [...messages, userMsg];
@@ -372,8 +392,9 @@ export default function LockBoxScreen() {
           showsVerticalScrollIndicator={false}
         >
           {messages.map((m) => (
-            <View
+            <Pressable
               key={m.id}
+              onPress={m.role === "user" ? () => { setEditingMsgId(m.id); setInput(m.content); } : undefined}
               style={[
                 styles.bubble,
                 m.role === "assistant" ? styles.bubbleAi : styles.bubbleUser,
@@ -416,7 +437,13 @@ export default function LockBoxScreen() {
                   <Text style={styles.sharePillText}>Share Report</Text>
                 </Pressable>
               )}
-            </View>
+              {m.role === "user" && (
+                <View style={styles.editHint}>
+                  <Ionicons name="pencil" size={12} color="rgba(255,255,255,0.35)" />
+                  <Text style={styles.editHintText}>Edit</Text>
+                </View>
+              )}
+            </Pressable>
           ))}
 
           {isProcessing && (
@@ -427,6 +454,15 @@ export default function LockBoxScreen() {
         </ScrollView>
 
         <View style={styles.inputBar}>
+          {editingMsgId && (
+            <View style={styles.editingBar}>
+              <Text style={styles.editingBarText}>Editing...</Text>
+              <Pressable onPress={cancelEdit} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+              </Pressable>
+            </View>
+          )}
+          <View style={styles.inputRow}>
           <Pressable
             onPress={toggleRecording}
             disabled={isProcessing}
@@ -463,8 +499,9 @@ export default function LockBoxScreen() {
               (isProcessing || !input.trim()) && { opacity: 0.5 },
             ]}
           >
-            <Text style={styles.sendBtnText}>Send</Text>
+            <Text style={styles.sendBtnText}>{editingMsgId ? "Resend" : "Send"}</Text>
           </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -539,15 +576,43 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: Platform.OS === "ios" ? 18 : 14,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.06)",
     backgroundColor: BG,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  editingBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: "rgba(254,119,37,0.15)",
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  editingBarText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.primary,
+  },
+  editHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    marginTop: 4,
+    gap: 4,
+  },
+  editHintText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.35)",
   },
   micBtn: {
     width: 44,
