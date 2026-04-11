@@ -23,14 +23,14 @@ import { loadProfile, WorkerProfile } from "../constants/workerProfile";
 import * as FileSystem from "expo-file-system/legacy";
 import { BRIDGE_API, HR_API } from "../constants/api";
 
-const BACKGROUND = "#0A0A0F";
+const BG = "#0A0A0F";
 
-const QUESTIONS = [
-  "Hey! Which job site are you headed to today? 👷",
-  "Nice! What kind of work are you tackling this shift?",
-  "What materials or equipment are you working with today?",
-  "Anything out of the ordinary on site we should know about?",
-];
+type Role = "user" | "assistant";
+type Msg = { id: string; role: Role; content: string };
+
+function uid() {
+  return Date.now() + "_" + Math.random().toString(16).slice(2);
+}
 
 function formatToday() {
   return new Date().toLocaleDateString(undefined, {
@@ -41,34 +41,85 @@ function formatToday() {
   });
 }
 
-function greetingForHour() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+function buildSystemPrompt(profile: WorkerProfile | null) {
+  return `You are WeldWise Lock Box Talk, a pre-shift safety briefing AI for skilled trades workers. Your job is to conduct a friendly, professional pre-shift safety conversation with the worker. You already know their profile:
+- Name: ${profile?.name || "Unknown"}
+- Trade: ${profile?.trade || "Unknown"}
+- Certification: ${profile?.certificationLevel || "Unknown"}
+- Employer: ${profile?.employer || "Unknown"}
+- Union: ${profile?.unionLocal || "Unknown"}
+
+Today's date is ${formatToday()}.
+
+Start by greeting them by first name and today's date. Then naturally guide them through these key safety areas in a conversational way (not as a rigid list):
+- Job site location today
+- Work being performed this shift
+- Materials and equipment
+- Any hazards or unusual conditions
+- PPE confirmation
+
+Ask one thing at a time. Be warm, professional, and trade-specific. When you have gathered enough information (usually after 4-6 exchanges), offer to generate their pre-shift safety report by saying exactly: 'Ready to generate your safety report? Just say yes and I will create it for you.'
+
+When they say yes, generate a complete professional pre-shift safety briefing as plain text with no markdown, no bullet points, no bold text. Use short paragraphs only.
+
+Format rules:
+- Plain text only
+- No markdown
+- No headings
+- No bullet lists
+- No bold or special formatting
+- Short, clean paragraphs only`;
+}
+
+function isReportMessage(text: string): boolean {
+  const lower = text.toLowerCase();
+  const signals = [
+    "pre-shift safety briefing",
+    "safety report",
+    "pre-shift briefing",
+    "hazard assessment",
+    "ppe requirements",
+    "stay safe",
+  ];
+  let matches = 0;
+  for (const s of signals) {
+    if (lower.includes(s)) matches++;
+  }
+  return matches >= 2;
+}
+
+function getMimeFromUri(uri: string) {
+  const u = uri.toLowerCase();
+  if (u.endsWith(".m4a")) return "audio/m4a";
+  if (u.endsWith(".mp3")) return "audio/mpeg";
+  if (u.endsWith(".wav")) return "audio/wav";
+  if (u.endsWith(".aac")) return "audio/aac";
+  if (u.endsWith(".3gp")) return "audio/3gpp";
+  return Platform.OS === "ios" ? "audio/m4a" : "audio/3gpp";
 }
 
 export default function LockBoxScreen() {
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
-  const [answers, setAnswers] = useState<string[]>(Array(QUESTIONS.length).fill(""));
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [draft, setDraft] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const [aiBriefing, setAiBriefing] = useState<string | null>(null);
-  const [generatingReport, setGeneratingReport] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [ttsStatus, setTtsStatus] = useState<"idle" | "loading" | "playing">("idle");
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
 
+  const systemPromptRef = useRef<string>("");
+  const didInitRef = useRef(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
-    loadProfile().then((p) => {
-      console.log("[LOCKBOX] profile loaded:", JSON.stringify(p));
-      setProfile(p);
-    }).catch(() => {});
+    loadProfile()
+      .then((p) => {
+        console.log("[LOCKBOX] profile loaded:", JSON.stringify(p));
+        setProfile(p);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -80,13 +131,89 @@ export default function LockBoxScreen() {
     };
   }, []);
 
-  async function speakText(text: string) {
+  // Start conversation once profile loads
+  useEffect(() => {
+    if (didInitRef.current) return;
+    if (profile === null) return;
+    didInitRef.current = true;
+
+    const sysPrompt = buildSystemPrompt(profile);
+    systemPromptRef.current = sysPrompt;
+
+    sendToChat([], sysPrompt);
+  }, [profile]);
+
+  function addMessage(role: Role, content: string): Msg {
+    const msg: Msg = { id: uid(), role, content };
+    setMessages((prev) => [...prev, msg]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    return msg;
+  }
+
+  async function sendToChat(history: Msg[], systemPrompt?: string) {
+    setIsProcessing(true);
+    try {
+      const sys = systemPrompt || systemPromptRef.current;
+      const payload = {
+        messages: [
+          { role: "system", content: sys },
+          ...history.map((m) => ({ role: m.role, content: m.content })),
+        ],
+      };
+
+      const res = await fetch(`${HR_API}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("chat " + res.status);
+      const data = (await res.json()) as { content?: string };
+      const reply = (data?.content || "").trim() || "No response.";
+      addMessage("assistant", reply);
+    } catch (e: any) {
+      console.error("[LOCKBOX] chat error:", e);
+      addMessage("assistant", "Having trouble connecting. Please check your connection and try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  async function handleSend() {
+    const trimmed = input.trim();
+    if (!trimmed || isProcessing) return;
+
+    const userMsg: Msg = { id: uid(), role: "user", content: trimmed };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    setInput("");
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+
+    await sendToChat(updated);
+  }
+
+  // TTS
+  async function stopAnyTTS() {
     try {
       if (soundRef.current) {
-        await soundRef.current.stopAsync().catch(() => {});
-        await soundRef.current.unloadAsync().catch(() => {});
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
         soundRef.current = null;
       }
+    } catch {}
+    setTtsStatus("idle");
+    setPlayingMsgId(null);
+  }
+
+  async function playMsgTTS(msgId: string, text: string) {
+    if (playingMsgId === msgId && ttsStatus === "playing") {
+      await stopAnyTTS();
+      return;
+    }
+    await stopAnyTTS();
+    setPlayingMsgId(msgId);
+    setTtsStatus("loading");
+    try {
       const res = await fetch(`${HR_API}/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,48 +239,26 @@ export default function LockBoxScreen() {
       });
 
       const fileUri = (FileSystem.cacheDirectory ?? "") + "lockbox_tts.mp3";
-      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
-        encoding: "base64",
-      });
+      await FileSystem.writeAsStringAsync(fileUri, audioBase64, { encoding: "base64" });
       const { sound } = await Audio.Sound.createAsync(
         { uri: fileUri },
         { shouldPlay: true }
       );
       soundRef.current = sound;
+      setTtsStatus("playing");
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          stopAnyTTS();
+        }
+      });
     } catch (error) {
       console.error("[LOCKBOX TTS] error:", error);
+      setTtsStatus("idle");
+      setPlayingMsgId(null);
     }
   }
 
-
-  const allAnswered = currentIndex >= QUESTIONS.length;
-
-  const submitAnswer = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-
-    if (editingIndex !== null) {
-      setAnswers((prev) => {
-        const next = [...prev];
-        next[editingIndex] = trimmed;
-        return next;
-      });
-      setDraft("");
-      setEditingIndex(null);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
-      return;
-    }
-
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[currentIndex] = trimmed;
-      return next;
-    });
-    setDraft("");
-    setCurrentIndex((i) => i + 1);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
-  };
-
+  // Voice recording
   const startRecording = useCallback(async () => {
     try {
       if (recordingRef.current) {
@@ -190,7 +295,9 @@ export default function LockBoxScreen() {
       if (!uri) throw new Error("No recording URI");
 
       const formData = new FormData();
-      formData.append("audio", { uri, name: "recording.m4a", type: "audio/m4a" } as any);
+      const mime = getMimeFromUri(uri);
+      const filename = uri.split("/").pop() || "recording.m4a";
+      formData.append("audio", { uri, name: filename, type: mime } as any);
       formData.append("language", "en");
 
       const response = await fetch(`${BRIDGE_API}/api/transcribe`, {
@@ -203,14 +310,24 @@ export default function LockBoxScreen() {
         throw new Error(err.error || "Transcription failed");
       }
       const result = await response.json();
-      const text = (result.transcript || "").trim();
-      if (text) submitAnswer(text);
+      const text = (result.transcript || result.text || "").trim();
+      if (text) {
+        const userMsg: Msg = { id: uid(), role: "user", content: text };
+        const updated = [...messages, userMsg];
+        setMessages(updated);
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+        setIsProcessing(false);
+        await sendToChat(updated);
+        return;
+      } else {
+        addMessage("assistant", "I didn't catch that clearly. Try again a little closer to the mic.");
+      }
     } catch (err: any) {
       Alert.alert("Voice Error", err.message || "Could not transcribe audio.");
     } finally {
       setIsProcessing(false);
     }
-  }, [currentIndex]);
+  }, [messages]);
 
   const toggleRecording = () => {
     if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -218,89 +335,16 @@ export default function LockBoxScreen() {
     else startRecording();
   };
 
-  const buildReportText = () => {
-    const today = formatToday();
-    const lines: string[] = [];
-    lines.push("LOCK BOX TALK — PRE-SHIFT BRIEFING");
-    lines.push(today);
-    lines.push("");
-    if (profile) {
-      lines.push(`Worker: ${profile.name}`);
-      if (profile.trade) lines.push(`Trade: ${profile.trade}`);
-      if (profile.certificationLevel) lines.push(`Certification: ${profile.certificationLevel}`);
-      if (profile.employer) lines.push(`Employer: ${profile.employer}`);
-      if (profile.unionLocal) lines.push(`Union Local: ${profile.unionLocal}`);
-      lines.push("");
-    }
-    QUESTIONS.forEach((q, i) => {
-      lines.push(`Q: ${q}`);
-      lines.push(`A: ${answers[i] || "—"}`);
-      lines.push("");
-    });
-    if (aiBriefing) {
-      lines.push("---");
-      lines.push("AI SAFETY BRIEFING:");
-      lines.push(aiBriefing);
-      lines.push("");
-    }
-    lines.push("---");
-    lines.push("This report was generated by WeldWise AI and is not a certified safety inspection. For reference purposes only.");
-    return lines.join("\n");
-  };
-
-  const generateAiBriefing = async () => {
-    setGeneratingReport(true);
-    setShowReport(true);
-    setAiBriefing(null);
+  const handleShare = async (text: string) => {
     try {
-      const prompt = `You are a pre-shift safety briefing assistant for trades workers. Based on this worker profile and their answers, generate a professional pre-shift safety briefing summary.
-
-Worker: ${profile?.name || "Unknown"}
-Trade: ${profile?.trade || "Unknown"}
-Level: ${profile?.certificationLevel || "Unknown"}
-Employer: ${profile?.employer || "Unknown"}
-Union: ${profile?.unionLocal || "Unknown"}
-
-Pre-shift answers:
-1. Job site: ${answers[0]}
-2. Work this shift: ${answers[1]}
-3. Materials/equipment: ${answers[2]}
-4. Anything unusual: ${answers[3]}
-
-Generate a concise safety briefing that acknowledges their specific work, highlights relevant safety considerations for their trade and today's tasks, and ends with an encouragement. Use plain text only, no markdown or bullet points.`;
-
-      const res = await fetch(`${HR_API}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-      if (!res.ok) throw new Error("chat " + res.status);
-      const data = (await res.json()) as { content?: string };
-      const reply = (data?.content || "").trim() || "Could not generate briefing.";
-      setAiBriefing(reply);
-    } catch (e: any) {
-      console.error("[LOCKBOX] briefing error:", e);
-      setAiBriefing("Could not generate AI briefing. Here is your standard summary.");
-    } finally {
-      setGeneratingReport(false);
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-    }
-  };
-
-  const handleShare = async () => {
-    try {
-      await Share.share({ message: buildReportText() });
+      await Share.share({ message: text });
     } catch (err: any) {
       Alert.alert("Share Error", err.message || "Could not open share sheet.");
     }
   };
 
-  const workerName = profile?.name?.split(" ")[0] || "there";
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color="#fff" />
@@ -312,209 +356,117 @@ Generate a concise safety briefing that acknowledges their specific work, highli
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        keyboardVerticalOffset={0}
       >
         <ScrollView
           ref={scrollRef}
+          style={{ flex: 1 }}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.greeting}>
-            {greetingForHour()} {workerName}
-          </Text>
-          <Text style={styles.date}>{formatToday()}</Text>
-
-          {QUESTIONS.map((q, i) => {
-            if (i > currentIndex) return null;
-            return (
-              <View key={i} style={styles.qaBlock}>
-                <View style={styles.botBubble}>
-                  <Pressable
-                    onPress={() => speakText(q)}
-                    style={styles.listenPill}
-                  >
-                    <Ionicons name="play-circle" size={18} color={Colors.primary} />
-                    <Text style={styles.listenPillText}>Listen</Text>
-                  </Pressable>
-                  <Text style={styles.botBubbleText}>{q}</Text>
-                </View>
-                {answers[i] ? (
-                  <Pressable
-                    onPress={() => {
-                      if (!showReport) {
-                        setEditingIndex(i);
-                        setDraft(answers[i]);
+          {messages.map((m) => (
+            <View
+              key={m.id}
+              style={[
+                styles.bubble,
+                m.role === "assistant" ? styles.bubbleAi : styles.bubbleUser,
+              ]}
+            >
+              {m.role === "assistant" && (
+                <Pressable
+                  onPress={() => playMsgTTS(m.id, m.content)}
+                  style={styles.listenPill}
+                >
+                  {playingMsgId === m.id && ttsStatus === "loading" ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <Ionicons
+                      name={
+                        playingMsgId === m.id && ttsStatus === "playing"
+                          ? "pause-circle"
+                          : "play-circle"
                       }
-                    }}
-                    style={[
-                      styles.userBubble,
-                      editingIndex === i && styles.userBubbleEditing,
-                    ]}
-                  >
-                    <Text style={styles.userBubbleText}>{answers[i]}</Text>
-                    {!showReport && (
-                      <View style={styles.editHint}>
-                        <Ionicons name="pencil" size={11} color="rgba(255,255,255,0.5)" />
-                        <Text style={styles.editHintText}>Edit</Text>
-                      </View>
-                    )}
-                  </Pressable>
-                ) : null}
-              </View>
-            );
-          })}
-
-          {showReport && (
-            <View style={styles.reportCard}>
-              <Text style={styles.reportTitle}>PRE-SHIFT BRIEFING</Text>
-              <Text style={styles.reportDate}>{formatToday()}</Text>
-
-              {profile && (
-                <View style={styles.reportSection}>
-                  <Text style={styles.reportRow}>
-                    <Text style={styles.reportLabel}>Worker: </Text>
-                    {profile.name}
+                      size={18}
+                      color={Colors.primary}
+                    />
+                  )}
+                  <Text style={styles.listenPillText}>
+                    {playingMsgId === m.id && ttsStatus === "loading"
+                      ? "Loading..."
+                      : playingMsgId === m.id && ttsStatus === "playing"
+                        ? "Playing..."
+                        : "Listen"}
                   </Text>
-                  {!!profile.trade && (
-                    <Text style={styles.reportRow}>
-                      <Text style={styles.reportLabel}>Trade: </Text>
-                      {profile.trade}
-                    </Text>
-                  )}
-                  {!!profile.certificationLevel && (
-                    <Text style={styles.reportRow}>
-                      <Text style={styles.reportLabel}>Certification: </Text>
-                      {profile.certificationLevel}
-                    </Text>
-                  )}
-                  {!!profile.employer && (
-                    <Text style={styles.reportRow}>
-                      <Text style={styles.reportLabel}>Employer: </Text>
-                      {profile.employer}
-                    </Text>
-                  )}
-                  {!!profile.unionLocal && (
-                    <Text style={styles.reportRow}>
-                      <Text style={styles.reportLabel}>Union Local: </Text>
-                      {profile.unionLocal}
-                    </Text>
-                  )}
-                </View>
+                </Pressable>
               )}
-
-              <View style={styles.reportDivider} />
-
-              {QUESTIONS.map((q, i) => (
-                <View key={i} style={styles.reportQA}>
-                  <Text style={styles.reportQ}>{q}</Text>
-                  <Text style={styles.reportA}>{answers[i] || "—"}</Text>
-                </View>
-              ))}
-
-              <View style={styles.reportDivider} />
-
-              {generatingReport ? (
-                <View style={{ alignItems: "center", paddingVertical: 16 }}>
-                  <ActivityIndicator size="large" color={Colors.primary} />
-                  <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 10 }}>
-                    Generating safety briefing...
-                  </Text>
-                </View>
-              ) : aiBriefing ? (
-                <View>
-                  <Text style={styles.reportLabel}>AI SAFETY BRIEFING</Text>
-                  <Text style={styles.reportA}>{aiBriefing}</Text>
-                </View>
-              ) : null}
+              <Text style={styles.bubbleText}>{m.content}</Text>
+              {m.role === "assistant" && isReportMessage(m.content) && (
+                <Pressable
+                  onPress={() => handleShare(m.content)}
+                  style={styles.sharePill}
+                >
+                  <Ionicons name="share-outline" size={16} color="#fff" />
+                  <Text style={styles.sharePillText}>Share Report</Text>
+                </Pressable>
+              )}
             </View>
-          )}
+          ))}
 
-          {showReport && !generatingReport && (
-            <>
-              <Text style={styles.disclaimer}>
-                This report was generated by WeldWise AI and is not a certified safety inspection. For reference purposes only.
-              </Text>
-              <Pressable
-                onPress={handleShare}
-                style={({ pressed }) => [styles.shareButton, pressed && { opacity: 0.85 }]}
-              >
-                <Ionicons name="share-outline" size={18} color="#fff" />
-                <Text style={styles.shareButtonText}>Share Report</Text>
-              </Pressable>
-            </>
+          {isProcessing && (
+            <View style={[styles.bubble, styles.bubbleAi]}>
+              <ActivityIndicator color={Colors.primary} />
+            </View>
           )}
         </ScrollView>
 
-        {!showReport && (
-          <View style={styles.inputBar}>
-            {editingIndex !== null && (
-              <View style={styles.editingBar}>
-                <Text style={styles.editingBarText}>Editing answer {editingIndex + 1}</Text>
-                <Pressable onPress={() => { setEditingIndex(null); setDraft(""); }} hitSlop={8}>
-                  <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
-                </Pressable>
-              </View>
-            )}
-            {allAnswered && editingIndex === null ? (
-              <Pressable
-                onPress={() => {
-                  if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  generateAiBriefing();
-                }}
-                style={({ pressed }) => [styles.generateButton, pressed && { opacity: 0.9 }]}
-              >
-                <Text style={styles.generateButtonText}>Generate Report</Text>
-              </Pressable>
+        <View style={styles.inputBar}>
+          <Pressable
+            onPress={toggleRecording}
+            disabled={isProcessing}
+            style={[
+              styles.micBtn,
+              { backgroundColor: isRecording ? Colors.primary : "rgba(255,255,255,0.1)" },
+              isProcessing && { opacity: 0.5 },
+            ]}
+          >
+            {isProcessing && isRecording ? (
+              <ActivityIndicator color="#fff" />
             ) : (
-              <View style={styles.composerRow}>
-                <TextInput
-                  value={draft}
-                  onChangeText={setDraft}
-                  placeholder="Type your answer..."
-                  placeholderTextColor="rgba(255,255,255,0.35)"
-                  style={styles.composerInput}
-                  editable={!isProcessing}
-                  onSubmitEditing={() => submitAnswer(draft)}
-                  returnKeyType="send"
-                  multiline
-                />
-                <Pressable
-                  onPress={toggleRecording}
-                  disabled={isProcessing}
-                  style={[
-                    styles.micButton,
-                    { backgroundColor: isRecording ? Colors.primary : "rgba(255,255,255,0.1)" },
-                    isProcessing && { opacity: 0.5 },
-                  ]}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Ionicons name={isRecording ? "stop" : "mic"} size={22} color="#fff" />
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={() => submitAnswer(draft)}
-                  disabled={isProcessing || !draft.trim()}
-                  style={[
-                    styles.sendButton,
-                    (isProcessing || !draft.trim()) && { opacity: 0.5 },
-                  ]}
-                >
-                  <Text style={styles.sendButtonText}>Send</Text>
-                </Pressable>
-              </View>
+              <Ionicons name={isRecording ? "stop" : "mic"} size={22} color="#fff" />
             )}
-          </View>
-        )}
+          </Pressable>
+
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Type your answer..."
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            style={styles.textInput}
+            editable={!isProcessing}
+            onSubmitEditing={handleSend}
+            returnKeyType="send"
+            multiline
+          />
+
+          <Pressable
+            onPress={handleSend}
+            disabled={isProcessing || !input.trim()}
+            style={[
+              styles.sendBtn,
+              (isProcessing || !input.trim()) && { opacity: 0.5 },
+            ]}
+          >
+            <Text style={styles.sendBtnText}>Send</Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  safe: { flex: 1, backgroundColor: BG },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -526,22 +478,26 @@ const styles = StyleSheet.create({
   },
   backButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#fff", fontSize: 17, fontWeight: "700", letterSpacing: 0.3 },
-  scrollContent: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 24 },
-  greeting: { color: "#fff", fontSize: 24, fontWeight: "800" },
-  date: { color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 4, marginBottom: 18 },
-  qaBlock: { marginBottom: 14 },
-  botBubble: {
-    alignSelf: "flex-start",
+  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
+  bubble: {
+    padding: 14,
+    borderRadius: 18,
+    marginBottom: 10,
+    maxWidth: "90%",
+  },
+  bubbleAi: {
     backgroundColor: "#1A1A24",
-    borderRadius: 16,
+    alignSelf: "flex-start",
     borderTopLeftRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    maxWidth: "85%",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
   },
-  botBubbleText: { color: "#fff", fontSize: 15, lineHeight: 21 },
+  bubbleUser: {
+    backgroundColor: Colors.primary,
+    alignSelf: "flex-end",
+    borderTopRightRadius: 4,
+  },
+  bubbleText: { color: "#fff", fontSize: 15, lineHeight: 22 },
   listenPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -560,71 +516,34 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginLeft: 6,
   },
-  userBubble: {
-    alignSelf: "flex-end",
+  sharePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginTop: 10,
     backgroundColor: Colors.primary,
-    borderRadius: 16,
-    borderTopRightRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    maxWidth: "85%",
-    marginTop: 8,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 6,
   },
-  userBubbleText: { color: "#fff", fontSize: 15, lineHeight: 21, fontWeight: "600" },
-  editHint: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-end",
-    marginTop: 4,
-    gap: 4,
-  },
-  editHintText: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.5)",
-  },
-  userBubbleEditing: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
-  editingBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: "rgba(254,119,37,0.15)",
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  editingBarText: {
+  sharePillText: {
     fontSize: 13,
-    fontWeight: "600",
-    color: Colors.primary,
+    fontWeight: "700",
+    color: "#fff",
   },
   inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: Platform.OS === "ios" ? 18 : 14,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.06)",
-    backgroundColor: BACKGROUND,
+    backgroundColor: BG,
   },
-  composerRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  composerInput: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    color: "#fff",
-    backgroundColor: "#15151C",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderWidth: 1,
-    borderColor: "#26262E",
-    fontSize: 15,
-  },
-  micButton: {
+  micBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -633,7 +552,21 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.15)",
   },
-  sendButton: {
+  textInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    color: "#fff",
+    backgroundColor: "#15151C",
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderWidth: 1,
+    borderColor: "#26262E",
+    fontSize: 15,
+  },
+  sendBtn: {
     paddingHorizontal: 16,
     height: 44,
     borderRadius: 22,
@@ -641,65 +574,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sendButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  generateButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  generateButtonText: { color: "#fff", fontSize: 16, fontWeight: "800", letterSpacing: 0.5 },
-  reportCard: {
-    marginTop: 16,
-    backgroundColor: "#15151C",
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  reportTitle: {
-    color: Colors.primary,
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    textAlign: "center",
-  },
-  reportDate: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 4,
-    marginBottom: 14,
-  },
-  reportSection: { gap: 4 },
-  reportRow: { color: "#fff", fontSize: 14, lineHeight: 20 },
-  reportLabel: { color: "rgba(255,255,255,0.5)", fontWeight: "700" },
-  reportDivider: {
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    marginVertical: 14,
-  },
-  reportQA: { marginBottom: 12 },
-  reportQ: { color: "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: "700", marginBottom: 4 },
-  reportA: { color: "#fff", fontSize: 15, lineHeight: 21 },
-  disclaimer: {
-    color: "rgba(255,255,255,0.4)",
-    fontSize: 11,
-    textAlign: "center",
-    marginTop: 14,
-    marginBottom: 14,
-    fontStyle: "italic",
-    paddingHorizontal: 12,
-  },
-  shareButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginBottom: 8,
-  },
-  shareButtonText: { color: "#fff", fontSize: 15, fontWeight: "800", letterSpacing: 0.4 },
+  sendBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 });
