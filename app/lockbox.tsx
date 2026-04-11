@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -147,7 +148,7 @@ export default function LockBoxScreen() {
   function addMessage(role: Role, content: string): Msg {
     const msg: Msg = { id: uid(), role, content };
     setMessages((prev) => [...prev, msg]);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+
     return msg;
   }
 
@@ -204,7 +205,7 @@ export default function LockBoxScreen() {
       setMessages(updated);
       setEditingMsgId(null);
       setInput("");
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+  
       await sendToChat(updated);
       return;
     }
@@ -213,7 +214,7 @@ export default function LockBoxScreen() {
     const updated = [...messages, userMsg];
     setMessages(updated);
     setInput("");
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+
 
     await sendToChat(updated);
   }
@@ -341,7 +342,7 @@ export default function LockBoxScreen() {
         const userMsg: Msg = { id: uid(), role: "user", content: text };
         const updated = [...messages, userMsg];
         setMessages(updated);
-        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    
         setIsProcessing(false);
         await sendToChat(updated);
         return;
@@ -371,6 +372,7 @@ export default function LockBoxScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color="#fff" />
@@ -389,6 +391,7 @@ export default function LockBoxScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           {messages.map((m) => (
@@ -504,6 +507,7 @@ export default function LockBoxScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -625,17 +629,17 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 52,
     maxHeight: 120,
     color: "#fff",
     backgroundColor: "#15151C",
     borderRadius: 22,
     paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 14,
+    paddingBottom: 14,
     borderWidth: 1,
     borderColor: "#26262E",
-    fontSize: 15,
+    fontSize: 16,
   },
   sendBtn: {
     paddingHorizontal: 16,

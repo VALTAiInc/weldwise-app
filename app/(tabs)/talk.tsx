@@ -13,6 +13,7 @@ import {
   View,
   Animated,
   Easing,
+  Keyboard,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Audio } from "expo-av";
@@ -687,6 +688,7 @@ export default function TalkScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -746,6 +748,7 @@ export default function TalkScreen() {
             ]}
             
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
             {messages.map((m) => (
               <Pressable
@@ -870,6 +873,7 @@ export default function TalkScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -987,14 +991,14 @@ const styles = StyleSheet.create({
 
   textInput: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 52,
     maxHeight: 120,
     borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     backgroundColor: "#13161D",
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 16,
   },
 
   editingBar: {
