@@ -155,7 +155,9 @@ export default function LockBoxScreen() {
     try {
       const sys = systemPrompt || systemPromptRef.current;
       const payload = {
-        messages: history.map((m) => ({ role: m.role, content: m.content })),
+        messages: history.length === 0
+          ? [{ role: "user", content: "Hello, ready for my pre-shift briefing." }]
+          : history.map((m) => ({ role: m.role, content: m.content })),
         profile: profile ? {
           name: profile.name,
           trade: profile.trade,
